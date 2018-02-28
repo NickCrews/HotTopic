@@ -1,24 +1,16 @@
+
 import os
-# ignore the gross warnings
-os.environ["TF_CPP_MIN_LOG_LEVEL"]="3"
-import time
 import numpy as np
-from functools import wraps
 import cv2
 import multiprocessing
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 # dynamically generate the gui skeleton file from the ui file
-with open('basicgui.py', 'w') as pyfile:
-    uic.compileUi('basicgui.ui', pyfile)
+with open('hottopic' + os.sep + 'basicgui.py', 'w') as pyfile:
+    uic.compileUi('hottopic' + os.sep + 'basicgui.ui', pyfile)
 import basicgui
 
-from hottopic import rawdata
-from hottopic import dataset
-from hottopic import util
-from hottopic import model
-from hottopic import viz
-from lib.async import async
+import hottopic as ht
 
 class GUI(basicgui.Ui_GUI, QtCore.QObject):
 
@@ -32,9 +24,8 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
         self.mainwindow = QtWidgets.QMainWindow()
         self.setupUi(self.mainwindow)
 
-        self.data = rawdata.load()
         self.model = None
-        self.dataset = dataset.emptyDataset(self.data)
+        self.dataset = dataset.emptyDataset()
 
         # do stuff
         self.initBurnTree()
@@ -57,20 +48,24 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
     def initBurnTree(self):
         model = QtGui.QStandardItemModel()
         self.burnTree.setModel(model)
-        burns = sorted(self.data.burns.keys())
-        for name in burns:
+        burnNames = ht.util.listdir('data')
+        burnNames.sort()
+        for name in burnNames:
             burnItem = QtGui.QStandardItem(name)
             burnItem.setSelectable(True)
             model.appendRow(burnItem)
-            dates = sorted(self.data.burns[name].days.keys())
+            dates = ht.util.availableDates(name)
+            dates.sort()
             for d in dates:
                 dateItem = QtGui.QStandardItem(d)
                 dateItem.setCheckable(True)
                 dateItem.setCheckState(QtCore.Qt.Unchecked)
                 dateItem.setSelectable(True)
                 burnItem.appendRow(dateItem)
+
         self.burnTree.setColumnWidth(0, 300)
         self.burnTree.expandAll()
+
         self.burnTree.selectionModel().selectionChanged.connect(self.burnDataSelected)
         self.burnTree.clicked.connect(self.dayChecked)
 
@@ -230,7 +225,7 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
         self.predictButton.setEnabled(True)
         print('got a result:', result)
 
-    @async(callback=donePredicting)
+    @ht.async.async(callback=donePredicting)
     def predict(self):
         print('starting predictions')
         result = self.model.predict(self.dataset)
@@ -256,8 +251,11 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
         # QI.setColorTable(COLORTABLE)
         label.setPixmap(QtGui.QPixmap.fromImage(QI))
 
-if __name__ == '__main__':
+def makeApp():
     app = QtWidgets.QApplication([])
     gui = GUI(app)
 
     app.exec_()
+
+if __name__ == '__main__':
+    makeApp()
