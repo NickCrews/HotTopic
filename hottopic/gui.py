@@ -8,11 +8,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 # dynamically generate the gui skeleton file from the ui file
 with open('hottopic' + os.sep + 'basicgui.py', 'w') as pyfile:
     uic.compileUi('hottopic' + os.sep + 'basicgui.ui', pyfile)
-import basicgui
 
 import hottopic as ht
 
-class GUI(basicgui.Ui_GUI, QtCore.QObject):
+class GUI(ht.basicgui.Ui_GUI, QtCore.QObject):
 
     sigPredict = QtCore.pyqtSignal(str,str)
 
@@ -25,10 +24,12 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
         self.setupUi(self.mainwindow)
 
         self.model = None
-        self.dataset = dataset.emptyDataset()
+        self.dataset = ht.dataset.Dataset()
 
         # do stuff
+        self.initAvailBurnModel()
         self.initBurnTree()
+        self.initPredictBurnTree()
         self.initDatasetTree()
 
         self.modelBrowseButton.clicked.connect(self.browseModels)
@@ -45,9 +46,8 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
         # self.useDataset("/Users/nickcrews/Documents/CSThesis/mlthesis/datasets/21Feb11-42.npz")
         # self.predict()
 
-    def initBurnTree(self):
+    def initAvailBurnModel(self):
         model = QtGui.QStandardItemModel()
-        self.burnTree.setModel(model)
         burnNames = ht.util.listdir('data')
         burnNames.sort()
         for name in burnNames:
@@ -62,12 +62,19 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
                 dateItem.setCheckState(QtCore.Qt.Unchecked)
                 dateItem.setSelectable(True)
                 burnItem.appendRow(dateItem)
+        self.availBurnModel = model
 
+    def initBurnTree(self):
+        self.burnTree.setModel(self.availBurnModel)
         self.burnTree.setColumnWidth(0, 300)
         self.burnTree.expandAll()
-
         self.burnTree.selectionModel().selectionChanged.connect(self.burnDataSelected)
         self.burnTree.clicked.connect(self.dayChecked)
+
+    def initPredictBurnTree(self):
+        self.predictBurnTree.setModel(self.availBurnModel)
+        self.predictBurnTree.setColumnWidth(0, 300)
+        self.predictBurnTree.expandAll()
 
     def initDatasetTree(self):
         model = QtGui.QStandardItemModel()
@@ -115,7 +122,7 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
         self.displayDatasetDay(burnName, date)
 
     def displayDatasetDay(self, burnName, date):
-        day = self.data.burns[burnName].days[date]
+        day = ht.rawdata.getDay(burnName, date)
         render = viz.renderDay(day)
         resizedRender = cv2.resize(render, self.BURN_RENDER_SIZE)
         mask = self.dataset.masks[burnName][date]
@@ -125,48 +132,49 @@ class GUI(basicgui.Ui_GUI, QtCore.QObject):
         self.showImage(overlayed, self.datasetDisplay)
 
     def displayDataset(self):
-        self.dataset.filterPoints(self.dataset.vulnerablePixels)
-        self.dataset.evenOutPositiveAndNegative2()
-        model = self.datasetTree.model()
-        model.clear()
-        burnNames = sorted(self.dataset.masks.keys())
-        for name in burnNames:
-            dates = sorted(self.dataset.masks[name].keys())
-            if not dates:
-                continue
-            burnItem = QtGui.QStandardItem(name)
-            burnItem.setSelectable(False)
-            model.appendRow(burnItem)
-            for d in dates:
-                dateItem = QtGui.QStandardItem(d)
-                dateItem.setSelectable(True)
-                burnItem.appendRow(dateItem)
-
-        root = self.burnTree.model().invisibleRootItem()
-        for burnIdx in range(root.rowCount()):
-            burnItem = root.child(burnIdx)
-            if burnItem.text() in self.dataset.masks:
-                usedDates = self.dataset.masks[burnItem.text()].keys()
-            else:
-                usedDates = []
-            for dayIdx in range(burnItem.rowCount()):
-                dateItem = burnItem.child(dayIdx)
-                if dateItem.text() in usedDates:
-                    dateItem.setCheckState(QtCore.Qt.Checked)
-                else:
-                    dateItem.setCheckState(QtCore.Qt.Unchecked)
-
-        self.datasetTree.expandAll()
+        # # self.dataset.filterPoints(self.dataset.vulnerablePixels)
+        # # self.dataset.evenOutPositiveAndNegative2()
+        # model = self.datasetTree.model()
+        # model.clear()
+        # burnNames = sorted(self.dataset.masks.keys())
+        # for name in burnNames:
+        #     dates = sorted(self.dataset.masks[name].keys())
+        #     if not dates:
+        #         continue
+        #     burnItem = QtGui.QStandardItem(name)
+        #     burnItem.setSelectable(False)
+        #     model.appendRow(burnItem)
+        #     for d in dates:
+        #         dateItem = QtGui.QStandardItem(d)
+        #         dateItem.setSelectable(True)
+        #         burnItem.appendRow(dateItem)
+        #
+        # root = self.burnTree.model().invisibleRootItem()
+        # for burnIdx in range(root.rowCount()):
+        #     burnItem = root.child(burnIdx)
+        #     if burnItem.text() in self.dataset.masks:
+        #         usedDates = self.dataset.masks[burnItem.text()].keys()
+        #     else:
+        #         usedDates = []
+        #     for dayIdx in range(burnItem.rowCount()):
+        #         dateItem = burnItem.child(dayIdx)
+        #         if dateItem.text() in usedDates:
+        #             dateItem.setCheckState(QtCore.Qt.Checked)
+        #         else:
+        #             dateItem.setCheckState(QtCore.Qt.Unchecked)
+        #
+        # self.datasetTree.expandAll()
+        pass
 
     def displayBurn(self, burnName):
-        burn = self.data.burns[burnName]
-        dem = viz.renderBurn(burn)
+        burn = ht.rawdata.getBurn(burnName)
+        dem = ht.viz.renderBurn(burn)
         resized = cv2.resize(dem, self.BURN_RENDER_SIZE)
         self.showImage(resized, self.burnDisplay)
 
     def displayDay(self, burnName, date):
-        day = self.data.burns[burnName].days[date]
-        img = viz.renderDay(day)
+        day = ht.rawdata.getDay(burnName, date)
+        img = ht.viz.renderDay(day)
         resized = cv2.resize(img, self.BURN_RENDER_SIZE)
         self.showImage(resized, self.burnDisplay)
         # print('displaying day:', day)
