@@ -2,6 +2,8 @@
 **/*.DS_Store
 
 hottopic/__pycache__/*
+hottopic/.*
+
 models/*
 !models/.placeholder
 data/*
