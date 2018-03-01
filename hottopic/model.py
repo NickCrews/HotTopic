@@ -58,9 +58,18 @@ class BaseModel(object):
     #         history = self.kerasModel.fit(tinputs, toutputs, batch_size=batch_size, epochs=epochs)
     #     return history
 
+    def fit(self, dataset, sampleChooser):
+        for burnName, date in dataset:
+            day = rawdata.getDay(burnName, date)
+            usedData = choosePoints(day)
+            prepped = self.pp.process(usedData)
+            self.kerasModel.fit(prepped)
+
+
     def predictDay(self, day):
         assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
         inp, out = self.pp.processDay(day)
+        print(inp)
         results = self.kerasModel.predict(inp)
         return results
     #
@@ -122,19 +131,20 @@ def load(modelFolder):
     # print('done! returning', obj)
     return obj
 
-class OurModel(BaseModel):
+class FireModel(BaseModel):
 
     def __init__(self, kerasModel=None):
         numWeatherInputs = 8
         usedLayers = ['dem','ndvi', 'aspect', 'band_2', 'band_3', 'band_4', 'band_5'] #, 'slope'
         AOIRadius = 30
-        pp = preprocess.PreProcessor(numWeatherInputs, usedLayers, AOIRadius)
+        pp = ht.preprocess.PreProcessor(numWeatherInputs, usedLayers, AOIRadius)
 
         if kerasModel is None:
-            kerasModel = OurModel.createModel(pp)
+            kerasModel = self.createModel(pp)
 
         super().__init__(kerasModel, pp)
 
+    @staticmethod
     def createModel(pp):
         # make our keras Model
         kernelDiam = 2*pp.AOIRadius+1

@@ -9,9 +9,6 @@ def listdir(path):
         return not fname.startswith('.') and not fname.startswith("_")
     return [f for f in os.listdir(path) if isGood(f)]
 
-def availableBurns():
-    return listdir('data/')
-
 def isValidImg(fname):
     img = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
     return img is not None
@@ -81,6 +78,9 @@ def invalidPixelMask(layer):
     noDataMask = noDataMask[1:h+1, 1:w+1]
     return noDataMask
 
+def availableBurns():
+    return listdir('data/')
+
 def availableDates(burnName):
     '''Given a fire, return a list of all dates that we can train on'''
     directory = 'data/{}/'.format(burnName)
@@ -102,6 +102,13 @@ def availableDates(burnName):
     daysWithWeatherAndPerims = [d for d in daysWithFollowingPerims if d in weatherDates]
     daysWithWeatherAndPerims.sort()
     return daysWithWeatherAndPerims
+
+def availableDays():
+    avail = []
+    for burnName in availableBurns():
+        for date in availableDates(burnName):
+            avail.append((burnName, date))
+    return avail
 
 def possibleNextDates(dateString):
     month, day = dateString[:2], dateString[2:]
