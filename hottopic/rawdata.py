@@ -12,7 +12,7 @@ def getBurn(burnName):
     if burnName in _burns:
         return _burns[burnName]
     else:
-        burn = Burn(burnName)
+        burn = Burn.fromFile(burnName)
         _burns[burnName] = burn
         return burn
 
@@ -24,28 +24,38 @@ def getDay(burnName, date):
     if burnName in _burns:
         burn = _burns[burnName]
     else:
-        burn = Burn(burnName)
+        burn = Burn.fromFile(burnName)
         _burns[burnName] = burn
 
-    day = Day(burn, date)
+    day = Day.fromFile(burn, date)
     _days[(burnName, date)] = day
     return day
+
+def getAllDays():
+    for burnName, date in ht.util.availableBurnsAndDates():
+        yield getDay(burnName, date)
+
+def getAllBurns():
+    for burnName in ht.util.availableBurnNames():
+        yield getBurn(burnName)
 
 class Burn(object):
 
     def __init__(self, name, layers):
         self.name = name
-        self.layers = self.loadLayers()
+        self.layers = layers
         # what is the height and width of a layer of data
         self.layerSize = list(self.layers.values())[0].shape[:2]
         self.days = {}
 
     @staticmethod
     def fromFile(burnName):
+        print('loading Burn {}...'.format(burnName), end='\r')
         l = Burn.loadLayers(burnName)
         b = Burn(burnName,l)
         days = {date:Day.fromFile(b, date) for date in ht.util.availableDates(burnName)}
         b.days = days
+        print('loading Burn {}...done'.format(burnName))
         return b
 
     @staticmethod
@@ -73,11 +83,11 @@ class Burn(object):
         return layers
 
     def __repr__(self):
-        return "Burn({}, {})".format(self.name, sorted(self.days.keys()))])
+        return "Burn({}, [{}])".format( self.name, sorted(self.days.keys()) )
 
 class Day(object):
 
-    def __init__(self, burn, date, weather, start_perim, endingPerim):
+    def __init__(self, burn, date, weather, startingPerim, endingPerim):
         self.burn = burn
         self.date = date
         self.weather = weather
@@ -86,9 +96,11 @@ class Day(object):
 
     @staticmethod
     def fromFile(burn, date):
+        print('loading Day {}, {}...'.format(burn.name, date), end='\r')
         w = Day.loadWeather(burn.name, date)
         sp = Day.loadStartingPerim(burn.name, date)
         ep = Day.loadEndingPerim(burn.name, date)
+        print('loading Day {}, {}...done'.format(burn.name, date))
         return Day(burn, date, w, sp, ep)
 
     @staticmethod

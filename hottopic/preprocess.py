@@ -1,19 +1,84 @@
-
+import os
+import json
 import numpy as np
 
 import hottopic as ht
 
 class PreProcessor(object):
 
-    def __init__(self, numWeatherInputs, whichLayers, AOIRadius):
-        self.numWeatherInputs = numWeatherInputs
-        self.whichLayers = whichLayers
-        self.AOIRadius = AOIRadius
+    def __init__(self, fits=None):
+        if fits is None:
+            fits = {}
+        self.fits = fits
 
-        self.fits = {}
+    def fit(self, days):
+        '''Generate the parameters to preprocess this group of days'''
+        days = list(days)
+        print('Fitting to days {}'.format(days))
+        burns = []
+        for d in days:
+            if d.burn not in burns:
+                burns.append(d.burn)
+        print('That is {} days within {} Burns'.format(len(days), len(burns)))
 
-    def fit(self, dataset):
-        pass
+        # Get stats on dems
+        print('fitting to dems...', end='\r')
+        dems = [b.layers['dem'] for b in burns]
+        maxDemRange = max(np.nanmax(dem) - np.nanmin(dem) for dem in dems)
+        means = [np.nanmean(dem) for dem in dems]
+        minDemMean, maxDemMean = np.nanmin(means), np.nanmax(means)
+        self.fits = {'dem_max_range':float(maxDemRange),
+                    'dem_min_mean':float(minDemMean),
+                    'dem_max_mean':float(maxDemMean)}
+        print('fitting to dems...done')
+
+        # get stats on the rest of the spatial data
+        print('fitting to spatial data...', end='\r')
+        layerNamesOfBurns = [sorted(b.layers.keys()) for b in burns]
+        assert all(layerNamesOfBurns[0] == ln for ln in layerNamesOfBurns) # ensure all burns have the same layers
+        layerNames = set(layerNamesOfBurns[0])-{'dem'} #get one set of layer names, minus the dems
+        for name in layerNames:
+            data = np.concatenate([b.layers[name].flatten() for b in burns])
+            mean = np.nanmean(data)
+            devs = np.nanstd(data)
+            self.fits[name+'_mean'] = float(mean)
+            self.fits[name+'_std'] = float(devs)
+        print('fitting to spatial data...done')
+
+
+        # get stats on the weather data
+        print('fitting to weather data...', end='\r')
+        rawWeathers = [day.weather for day in days]
+        totPrecips = [totalPrecipitation(w) for w in rawWeathers]
+        avgHums = [averageHumidity(w) for w in rawWeathers]
+        maxTemp1s = [maximumTemperature1(w) for w in rawWeathers]
+        maxTemp2s = [maximumTemperature2(w) for w in rawWeathers]
+        windSpeeds = [speed for w in rawWeathers for speed in windMetrics(w)] #all of the components in a 1d list
+        keys = ['total_precip', 'mean_hum', 'max_temp1', 'max_temp2', 'wind_speeds']
+        metrics = [totPrecips, avgHums, maxTemp1s, maxTemp2s, windSpeeds]
+        for key, metric in zip(keys, metrics):
+            self.fits[key+'_mean'] = np.mean(metric)
+            self.fits[key+'_std']  = np.std(metric)
+        print('fitting to weather data...done')
+
+
+    def save(self, fname):
+        if 'preprocessors' + os.sep not in fname:
+            fname = 'preprocessors' + os.sep + fname
+        if not fname.endswith('.json'):
+            fname += '.json'
+        with open(fname, 'w') as fp:
+            json.dump(self.fits, fp, sort_keys=True, indent=4)
+
+    @staticmethod
+    def fromFile(fname):
+        if 'preprocessors' + os.sep not in fname:
+            fname = 'preprocessors' + os.sep + fname
+        if not fname.endswith('.json'):
+            fname += '.json'
+        with open(fname, 'r') as fp:
+            fits = json.load(fp)
+        return PreProcessor(fits=fits)
 
     def processDay(self, day):
         sd = self.prepSpatialData(day)
@@ -53,6 +118,9 @@ class PreProcessor(object):
         winds = windMetrics(rw)
         allMetrics = [precip, temp, temp2, hum] + winds
         return np.array(allMetrics)
+
+    def __repr__(self):
+        return 'PreProcessor({})'.format(self.fits)
 
 
 def stackAndPad(layers, borderRadius):

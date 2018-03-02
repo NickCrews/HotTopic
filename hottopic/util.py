@@ -78,7 +78,7 @@ def invalidPixelMask(layer):
     noDataMask = noDataMask[1:h+1, 1:w+1]
     return noDataMask
 
-def availableBurns():
+def availableBurnNames():
     return listdir('data/')
 
 def availableDates(burnName):
@@ -103,9 +103,9 @@ def availableDates(burnName):
     daysWithWeatherAndPerims.sort()
     return daysWithWeatherAndPerims
 
-def availableDays():
+def availableBurnsAndDates():
     avail = []
-    for burnName in availableBurns():
+    for burnName in availableBurnNames():
         for date in availableDates(burnName):
             avail.append((burnName, date))
     return avail

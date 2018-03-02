@@ -10,11 +10,23 @@ def predict():
     oneDay = ht.rawdata.getDay(*avail[0])
     m.predictDay(oneDay)
 
-# if __name__ == '__main__':
-#     useGui()
+def fitPreprocessor():
+    p = ht.preprocess.PreProcessor()
+    allDays = ht.rawdata.getAllDays()
+    p.fit(allDays)
+    p.save('firstFit.json')
+
+def loadPreprocessor():
+    p = ht.preprocess.PreProcessor.fromFile('firstFit')
+    print(p)
+
+if __name__ == '__main__':
+    fitPreprocessor()
+    loadPreprocessor()
+    # useGui()
     # predict()
 
 
-import numpy as np
-def sample():
-    return np.arange()
+# import numpy as np
+# def sample():
+#     return np.arange()
