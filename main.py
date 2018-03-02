@@ -16,13 +16,19 @@ def fitPreprocessor():
     p.fit(allDays)
     p.save('firstFit.json')
 
-def loadPreprocessor():
+def usePreprocessor():
     p = ht.preprocess.PreProcessor.fromFile('firstFit')
     print(p)
+    allDays = ht.rawdata.getAllDays()
+    res = p.process(allDays)
+    # print(res)
+    for newDay in res:
+        print(newDay.weather)
+        print(newDay.burn.layers['dem'])
 
 if __name__ == '__main__':
-    fitPreprocessor()
-    loadPreprocessor()
+    # fitPreprocessor()
+    usePreprocessor()
     # useGui()
     # predict()
 

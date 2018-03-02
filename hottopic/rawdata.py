@@ -45,7 +45,6 @@ class Burn(object):
         self.name = name
         self.layers = layers
         # what is the height and width of a layer of data
-        self.layerSize = list(self.layers.values())[0].shape[:2]
         self.days = {}
 
     @staticmethod
