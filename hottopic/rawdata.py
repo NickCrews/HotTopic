@@ -5,6 +5,8 @@ import cv2
 
 import hottopic as ht
 
+PIXEL_SIZE = 30 #in meters
+
 _burns = {}
 _days = {}
 
