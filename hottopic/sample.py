@@ -28,27 +28,26 @@ def vulnerablePixels(day, radius=VULNERABLE_RADIUS):
     return border.astype(np.uint8)
 
 def evenOutPositiveAndNegativeOld(day, mask):
-        '''Make it so the chosen pixels for a day is a more even mixture of yes and no outputs.
-        day is the Day to look at. mask is the boolean mask of locations we are looking at now'''
-        # yes will contain all 'did burn' points, no contains 'did not burn' points
-        yes = []
-        no =  []
-        for p in self.toList(self.masks):
-            burnName, date, loc = p
-            burn = self.data.burns[burnName]
-            day = burn.days[date]
-            out = day.endingPerim[loc]
-            if out:
-                yes.append(p)
-            else:
-                no.append(p)
-        # shorten whichever is longer
-        if len(yes) > len(no):
-            random.shuffle(yes)
-            yes = yes[:len(no)]
-        else:
-            random.shuffle(no)
-            no = no[:len(yes)]
-
-        # recombine
-        return self.toDict(yes+no)
+    '''Make it so the chosen pixels for a day is a more even mixture of yes and no outputs.
+    day is the Day to look at. mask is the boolean mask of locations we are looking at now'''
+    didBurn = day.endingPerim.astype(np.uint8)
+    didNotBurn = 1-didBurn
+    # all the pixels we are training on that DID and did NOT burn
+    pos = np.bitwise_and(didBurn, mask)
+    neg = np.bitwise_and(didNotBurn, mask)
+    numPos = np.count_nonzero(pos)
+    numNeg = np.count_nonzero(neg)
+    if numPos > numNeg:
+        idxs = np.where(pos.flatten())[0]
+        numToZero = numPos-numNeg
+    else:
+        idxs = np.where(neg.flatten())[0]
+        numToZero = numNeg-numPos
+    if len(idxs) == 0:
+        continue
+    toBeZeroed = np.random.choice(idxs, numToZero)
+    origShape = mask.shape
+    mask = mask.flatten()
+    mask[toBeZeroed] = 0
+    newMask = mask.reshape(origShape)
+    return newMask
