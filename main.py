@@ -26,9 +26,21 @@ def usePreprocessor():
         print(newDay.weather)
         print(newDay.burn.layers['dem'])
 
-if __name__ == '__main__':
+def samples():
+    allDays = ht.rawdata.getAllDays()
+    s = ht.sample.makeSamples(allDays)
+    print('have a total of {} Samples'.format(len(s)))
+    for b in ht.sample.getBatches(s, batchSize=5):
+        inp = ht.sample.toModelInput(b)
+        # print(inp[0].shape, inp[1].shape)
+        out = ht.sample.toModelOutput(b)
+        # print(out.shape)
+
+
+# if __name__ == '__main__':
     # fitPreprocessor()
-    usePreprocessor()
+    # usePreprocessor()
+    # samples()
     # useGui()
     # predict()
 
