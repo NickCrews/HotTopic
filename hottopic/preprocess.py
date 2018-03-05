@@ -51,11 +51,11 @@ class PreProcessor(object):
         # get stats on the weather data
         print('fitting to weather data...', end='\r')
         rawWeathers = [day.weather for day in days]
-        totPrecips = [totalPrecipitation(w) for w in rawWeathers]
-        avgHums = [averageHumidity(w) for w in rawWeathers]
-        maxTemp1s = [maximumTemperature1(w) for w in rawWeathers]
-        maxTemp2s = [maximumTemperature2(w) for w in rawWeathers]
-        windSpeeds = [speed for w in rawWeathers for speed in windMetrics(w)] #all of the components in a 1d list
+        totPrecips = [ht.util.totalPrecipitation(w) for w in rawWeathers]
+        avgHums = [ht.util.averageHumidity(w) for w in rawWeathers]
+        maxTemp1s = [ht.util.maximumTemperature1(w) for w in rawWeathers]
+        maxTemp2s = [ht.util.maximumTemperature2(w) for w in rawWeathers]
+        windSpeeds = [speed for w in rawWeathers for speed in ht.util.windMetrics(w)] #all of the components in a 1d list
         keys = ['total_precip', 'mean_hum', 'max_temp1', 'max_temp2', 'wind_speeds']
         metrics = [totPrecips, avgHums, maxTemp1s, maxTemp2s, windSpeeds]
         for key, metric in zip(keys, metrics):
@@ -102,14 +102,6 @@ class PreProcessor(object):
             newBurn.days[day.date] = newDay
             results.append(newDay)
         return results
-
-        # sd = self.prepSpatialData(day)
-        # outs = day.endingPerim
-        #
-        # wm = self.weatherMetrics(day)
-        # H,W = outs.shape
-        # wmtiled = np.tile(wm, (H,W,1))
-        # return [wmtiled, sd], outs
 
     def _applyFitToLayers(self, layers):
         if len(self.fits) == 0:
@@ -172,52 +164,3 @@ class PreProcessor(object):
 
     def __repr__(self):
         return 'PreProcessor({})'.format(self.fits)
-
-
-def stackAndPad(layers, borderRadius):
-    stacked = np.dstack(layers)
-    r = borderRadius
-    # pad with zeros around border of image
-    padded = np.lib.pad(stacked, ((r,r),(r,r),(0,0)), 'constant')
-    return padded
-
-# =================================================================
-# weather metric utility functions
-
-def totalPrecipitation(weatherMatrix):
-    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
-    return sum(precip)
-
-def averageHumidity(weatherMatrix):
-    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
-    return sum(hum)/len(hum)
-
-def maximumTemperature1(weatherMatrix):
-    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
-    return max(temp)
-
-def maximumTemperature2(weatherMatrix):
-    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
-    return max(temp2)
-
-def windMetrics(weatherMatrix):
-    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
-    wDirRad = [(np.pi/180) * wDirDeg for wDirDeg in wdir]
-    n, s, e, w = 0, 0, 0, 0
-    for hr in range(len(wdir)):
-        # print(wdir[i], wDirRad[i], wspeed[i])
-        if wdir[hr] > 90 and wdir[hr] < 270: #from south
-            # print('south!', -np.cos(wDirRad[i]) * wspeed[i])
-            s += abs(np.cos(wDirRad[hr]) * wspeed[hr])
-        if wdir[hr] < 90 or wdir[hr] > 270: #from north
-            # print('north!', np.cos(wDirRad[i]) * wspeed[i])
-            n += abs(np.cos(wDirRad[hr]) * wspeed[hr])
-        if wdir[hr] < 360 and wdir[hr] > 180: #from west
-            # print('west!', -np.sin(wDirRad[i]) * wspeed[i])
-            w += abs(np.sin(wDirRad[hr]) * wspeed[hr])
-        if wdir[hr] > 0 and wdir[hr] < 180: #from east
-            # print('east!',np.sin(wDirRad[i]) * wspeed[i])
-            e += abs(np.sin(wDirRad[hr]) * wspeed[hr])
-    components = [n, s, e, w]
-    # print(weather)
-    return components
