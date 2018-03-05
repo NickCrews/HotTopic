@@ -108,6 +108,7 @@ def availableBurnsAndDates():
     for burnName in availableBurnNames():
         for date in availableDates(burnName):
             avail.append((burnName, date))
+    avail.sort()
     return avail
 
 def possibleNextDates(dateString):
@@ -119,3 +120,44 @@ def possibleNextDates(dateString):
     nextMonth = str(int(month)+1).zfill(2)
     guess2 = nextMonth+'01'
     return guess1, guess2
+
+# =================================================================
+# weather metric utility functions
+
+def totalPrecipitation(weatherMatrix):
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
+    return sum(precip)
+
+def averageHumidity(weatherMatrix):
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
+    return sum(hum)/len(hum)
+
+def maximumTemperature1(weatherMatrix):
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
+    return max(temp)
+
+def maximumTemperature2(weatherMatrix):
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
+    return max(temp2)
+
+def windMetrics(weatherMatrix):
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = weatherMatrix
+    wDirRad = [(np.pi/180) * wDirDeg for wDirDeg in wdir]
+    n, s, e, w = 0, 0, 0, 0
+    for hr in range(len(wdir)):
+        # print(wdir[i], wDirRad[i], wspeed[i])
+        if wdir[hr] > 90 and wdir[hr] < 270: #from south
+            # print('south!', -np.cos(wDirRad[i]) * wspeed[i])
+            s += abs(np.cos(wDirRad[hr]) * wspeed[hr])
+        if wdir[hr] < 90 or wdir[hr] > 270: #from north
+            # print('north!', np.cos(wDirRad[i]) * wspeed[i])
+            n += abs(np.cos(wDirRad[hr]) * wspeed[hr])
+        if wdir[hr] < 360 and wdir[hr] > 180: #from west
+            # print('west!', -np.sin(wDirRad[i]) * wspeed[i])
+            w += abs(np.sin(wDirRad[hr]) * wspeed[hr])
+        if wdir[hr] > 0 and wdir[hr] < 180: #from east
+            # print('east!',np.sin(wDirRad[i]) * wspeed[i])
+            e += abs(np.sin(wDirRad[hr]) * wspeed[hr])
+    components = [n, s, e, w]
+    # print(weather)
+    return components
