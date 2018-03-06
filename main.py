@@ -26,23 +26,30 @@ def usePreprocessor():
         print(newDay.weather)
         print(newDay.burn.layers['dem'])
 
-def samples():
+def example():
     allDays = ht.rawdata.getAllDays()
     s = ht.sample.makeSamples(allDays)
     print('have a total of {} Samples'.format(len(s)))
-    for b in ht.sample.getBatches(s, batchSize=5):
-        inp = ht.sample.toModelInput(b)
-        # print(inp[0].shape, inp[1].shape)
-        out = ht.sample.toModelOutput(b)
+    m = ht.model.FireModel()
+    # for b in ht.sample.getBatches(s, batchSize=32):
+    #     inp = ht.sample.toModelInput(b)
+    #     print(inp[0].shape, inp[1].shape)
+    #     out = ht.sample.toModelOutput(b)
+    #     m.fit(inp, out)
         # print(out.shape)
+    m.fitOnSamples(s)
 
 
-# if __name__ == '__main__':
+
+if __name__ == '__main__':
+    # example()
     # fitPreprocessor()
     # usePreprocessor()
     # samples()
     # useGui()
     # predict()
+    for pair in ht.util.availableBurnsAndDates():
+        print(pair)
 
 
 # import numpy as np

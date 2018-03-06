@@ -1,5 +1,6 @@
 from time import localtime, strftime
 import os
+import math
 
 print('importing keras...')
 import keras.models
@@ -40,9 +41,9 @@ class BaseModel(object):
     DEFAULT_EPOCHS = 1
     DEFAULT_BATCHSIZE = 1000
 
-    def __init__(self, kerasModel=None, preProcessor=None):
+    def __init__(self, kerasModel=None, sampleSpec=None):
         self.kerasModel = kerasModel
-        self.pp = preProcessor
+        self.spec = sampleSpec
 
     # def fit(self, trainingDataset, validatateDataset=None, epochs=DEFAULT_EPOCHS,batch_size=DEFAULT_BATCHSIZE):
     #     assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
@@ -58,20 +59,28 @@ class BaseModel(object):
     #         history = self.kerasModel.fit(tinputs, toutputs, batch_size=batch_size, epochs=epochs)
     #     return history
 
-    def fit(self, dataset, sampleChooser):
-        for burnName, date in dataset:
-            day = rawdata.getDay(burnName, date)
-            usedData = choosePoints(day)
-            prepped = self.pp.process(usedData)
-            self.kerasModel.fit(prepped)
+    # def fit(self, dataset, sampleChooser):
+    #     for burnName, date in dataset:
+    #         day = rawdata.getDay(burnName, date)
+    #         usedData = choosePoints(day)
+    #         prepped = self.pp.process(usedData)
+    #         self.kerasModel.fit(prepped)
+
+    def fit(self, inputs, outputs):
+        return self.kerasModel.fit(inputs, outputs)
+
+    def fitOnSamples(self, samples, batchSize=ht.sample.BATCH_SIZE, shuffle=True):
+        gen = ht.sample.generateTrainingData(samples, batchSize, shuffle)
+        batchesPerDataset = int(math.ceil(len(samples)/batchSize))
+        self.kerasModel.fit_generator(gen, steps_per_epoch=batchesPerDataset)
 
 
-    def predictDay(self, day):
-        assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
-        inp, out = self.pp.processDay(day)
-        print(inp)
-        results = self.kerasModel.predict(inp)
-        return results
+    # def predictDay(self, day):
+    #     assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
+    #     inp, out = self.pp.processDay(day)
+    #     print(inp)
+    #     results = self.kerasModel.predict(inp)
+    #     return results
     #
     # def fit_generator(self, directory, valDirectory=None, epochs=DEFAULT_EPOCHS, steps_per_epoch=1):
     #     assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
@@ -134,22 +143,17 @@ def load(modelFolder):
 class FireModel(BaseModel):
 
     def __init__(self, kerasModel=None):
-        numWeatherInputs = 8
-        usedLayers = ['dem','ndvi', 'aspect', 'band_2', 'band_3', 'band_4', 'band_5'] #, 'slope'
-        AOIRadius = 30
-        pp = ht.preprocess.PreProcessor(numWeatherInputs, usedLayers, AOIRadius)
-
+        spec = ht.sample.SampleSpec
         if kerasModel is None:
-            kerasModel = self.createModel(pp)
-
-        super().__init__(kerasModel, pp)
+            kerasModel = self.createModel(spec)
+        super().__init__(kerasModel, spec)
 
     @staticmethod
-    def createModel(pp):
+    def createModel(spec):
         # make our keras Model
-        kernelDiam = 2*pp.AOIRadius+1
-        wb = Input((pp.numWeatherInputs,),name='weatherInput')
-        ib = ImageBranch(len(pp.whichLayers), kernelDiam)
+        kernelDiam = 2*spec.AOIRadius+1
+        wb = Input((spec.numNonLayers,),name='weatherInput')
+        ib = ImageBranch(spec.numLayers, kernelDiam)
 
         concat = Concatenate(name='mergedBranches')([wb,ib.output])
         out = Dense(1, kernel_initializer = 'normal', activation = 'sigmoid',name='output')(concat)
