@@ -50,7 +50,7 @@ class BaseModel(object):
         def __init__(self, ourModel):
             self.ourModel = ourModel
 
-        def on_batch_end(self, batch, logs={}):
+        def on_epoch_end(self, epoch, logs={}):
             self.ourModel.save()
 
     # def fit(self, trainingDataset, validatateDataset=None, epochs=DEFAULT_EPOCHS,batch_size=DEFAULT_BATCHSIZE):
