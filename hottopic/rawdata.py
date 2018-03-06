@@ -125,13 +125,13 @@ class Day(object):
     def loadEndingPerim(burnName, date):
         guess1, guess2 = ht.util.possibleNextDates(date)
         fname = 'data' + os.sep + burnName + os.sep + 'perims' + os.sep + guess1+'.tif'
-        perim = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
+        perim = ht.util.openPerim(fname)
         if perim is None:
             # overflowed the month, that file didnt exist
             fname = 'data' + os.sep + burnName + os.sep + 'perims' + os.sep + guess2+'.tif'
-            perim = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
+            perim = ht.util.openPerim(fname)
             if perim is None:
-                raise RuntimeError('Could not open a perimeter for the fire {} for the day {} or {}'.format(self.burn.name, guess1, guess2))
+                raise RuntimeError('Could not open a perimeter for the fire {} for the day {} or {}'.format(burnName, guess1, guess2))
         return perim
 
     def __repr__(self):
