@@ -88,10 +88,6 @@ def availableDates(burnName):
 
     perimFiles = listdir(directory+'perims' + os.sep)
     perimDates = [fname[:-len('.tif')] for fname in perimFiles]
-
-    print('exploring burn', burnName)
-    print('found the dates', weatherDates, perimDates)
-
     # we can only use days which have perimeter data on the following day
     daysWithFollowingPerims = []
     for d in perimDates:

@@ -41,20 +41,42 @@ def example():
 
 def trainAndTestSets():
     testing = ['peekaboo', 'pineTree']
-    train = [ht.rawdata.getDay(b,d) for (b,d) in ht.util.availableBurnsAndDates() if b not in testing]
-    test = [ht.rawdata.getDay(b,d) for (b,d) in ht.util.availableBurnsAndDates() if b in testing]
+    train = []
+    test = []
+    for (b,d) in ht.util.availableBurnsAndDates():
+        if b in testing:
+            test.append(ht.rawdata.getDay(b,d))
+        else:
+            train.append(ht.rawdata.getDay(b,d))
     return train, test
 
 def train():
-    m = ht.model.FireModel()
-    m.save('firstFit')
+    m = ht.model.load('secondFit')
+    # m.save('firstFit')
     train, test = trainAndTestSets()
     s = ht.sample.makeSamples(train)
-    m.fitOnSamples(s)
-    m.save('firstFit')
+    m.fitOnSamples(s, epochs=5)
+    m.save('thirdFit')
+
+def trainOnOne():
+    m = ht.model.FireModel()
+    days = [ht.rawdata.getDay('beaverCreek', '0804')]
+    samples = ht.sample.makeSamples(days)
+    m.fitOnSamples(samples, epochs=10)
+    m.save('bc0804')
+
+def test():
+    m = ht.model.load('secondFit')
+    train, test = trainAndTestSets()
+    samples = ht.sample.makeSamples(train)
+    peekabooSamples = [s for s in samples if s.day.burn.name=='redDirt2']
+    # pineTreeSamples = [s for s in samples if s.day.burn.name=='pineTree']
+    peekabooRenders = ht.viz.renderPerformance(m, peekabooSamples)
+    ht.viz.show(*peekabooRenders)
 
 if __name__ == '__main__':
-    train()
+    # test()
+    trainOnOne()
     # fitPreprocessor()
     # usePreprocessor()
     # samples()
