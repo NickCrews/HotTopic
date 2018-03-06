@@ -43,7 +43,6 @@ def openPerim(fname):
     img = img.astype(np.uint8)
     if len(img.shape)>2:
         img = img[:,:,0]
-    img[invalidPixelIndices(img)] = np.nan
     return img
 
 def validPixelIndices(layer):
