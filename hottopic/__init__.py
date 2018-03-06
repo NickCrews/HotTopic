@@ -7,7 +7,11 @@ from . import preprocess
 from . import sample
 from . import model
 
-from . import viz
-from . import async
-from . import basicgui
-from . import gui
+try:
+    from . import viz
+    from . import async
+    from . import basicgui
+    from . import gui
+    print('Imported the visualization modules successfully!')
+except:
+    print('Failed to import the visualization modules!')
