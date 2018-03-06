@@ -1,22 +1,16 @@
 from time import localtime, strftime
 import csv
+import math
 
 import numpy as np
 import cv2
-try:
-    import matplotlib
-    matplotlib.use("TkAgg")
-    from matplotlib import pyplot as plt
-    import matplotlib.animation as animation
-    print('Successfully imported pyplot')
-except:
-    print('Failed to import pyplot ')
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib import pyplot as plt
+import matplotlib.animation as animation
+# print('Successfully imported pyplot')
 
-from hottopic import dataset
-from hottopic import util
-
-def renderDataset(dataset):
-    pass
+import hottopic as ht
 
 def renderBurn(burn):
     dem = burn.layers['dem']
@@ -181,15 +175,30 @@ def showPredictions(predictionsRenders):
     # #unpause
     # anim.event_source.start()
 
-def show(*imgs, imm=True):
-    try:
-        for i, img in enumerate(imgs):
-            plt.figure(i, figsize=(8, 6))
-            plt.imshow(img)
-        if imm:
-            plt.show()
-    except:
-        print("Not able to show because plt not imported")
+def renderPerformance(model, samples):
+    expCanvas = np.empty_like(samples[0].day.startingPerim, dtype=np.float32)
+    predCanvas = np.empty_like(samples[0].day.startingPerim, dtype=np.float32)
+    expCanvas[:,:] = np.nan
+    predCanvas[:,:] = np.nan
+    bs = 1024
+    numBatches = int(math.ceil(len(samples)//bs))
+    for i, batch in enumerate(ht.sample.getBatches(samples, batchSize=bs, shuffle=False)):
+        print('predicting on {}/{}!'.format(i, numBatches))
+        inp = ht.sample.toModelInput(batch)
+        pred = model.predict(inp)
+        expected = ht.sample.toModelOutput(batch)
+        for s, e, p in zip(batch, expected, pred):
+            expCanvas[s.loc] = e
+            predCanvas[s.loc] = p
+
+    return expCanvas, predCanvas
+
+def show(*imgs, now=True):
+    for i, img in enumerate(imgs):
+        plt.figure(i, figsize=(8, 6))
+        plt.imshow(img)
+    if now:
+        plt.show()
 
 def save(img, name):
     fname = 'output/imgs/{}.png'.format(name)
