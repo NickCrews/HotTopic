@@ -14,14 +14,10 @@ def normalize(arr, axis=None):
 
     if axis=0, then each column is normalized independently
     if axis=1, then each row is normalized independently'''
-
     arr = arr.astype(np.float32)
-    # print('subtracting min')
     res = arr - np.nanmin(arr, axis=axis)
-    # print('dividing where', res)
     # where dividing by zero, just use zero
     res = np.divide(res, np.nanmax(res, axis=axis), out=np.zeros_like(res), where=res!=0)
-    # print('done')
     return res
 
 def openImg(fname):
