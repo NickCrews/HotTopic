@@ -44,6 +44,14 @@ class BaseModel(object):
     def __init__(self, kerasModel=None, sampleSpec=None):
         self.kerasModel = kerasModel
         self.spec = sampleSpec
+        self.saver = BaseModel.Saver(self)
+
+    class Saver(keras.callbacks.Callback):
+        def __init__(self, ourModel):
+            self.ourModel = ourModel
+
+        def on_batch_end(self, batch, logs={}):
+            self.ourModel.save()
 
     # def fit(self, trainingDataset, validatateDataset=None, epochs=DEFAULT_EPOCHS,batch_size=DEFAULT_BATCHSIZE):
     #     assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
@@ -67,13 +75,15 @@ class BaseModel(object):
     #         self.kerasModel.fit(prepped)
 
     def fit(self, inputs, outputs):
-        return self.kerasModel.fit(inputs, outputs)
+        return self.kerasModel.fit(inputs, outputs, callbacks=[self.saver])
 
-    def fitOnSamples(self, samples, batchSize=ht.sample.BATCH_SIZE, shuffle=True):
+    def fitOnSamples(self, samples, batchSize=ht.sample.BATCH_SIZE, shuffle=True, epochs=DEFAULT_EPOCHS):
         gen = ht.sample.generateTrainingData(samples, batchSize, shuffle)
         batchesPerDataset = int(math.ceil(len(samples)/batchSize))
-        self.kerasModel.fit_generator(gen, steps_per_epoch=batchesPerDataset)
+        self.kerasModel.fit_generator(gen, steps_per_epoch=batchesPerDataset, epochs=epochs, callbacks=[self.saver])
 
+    def predict(self, inputs):
+        return self.kerasModel.predict(inputs)
 
     # def predictDay(self, day):
     #     assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
