@@ -45,7 +45,7 @@ class Sample(object):
         return self.day.endingPerim[self.loc]
 
     def stackAndPad(self):
-        layers = [self.day.startingPerim] + [self.day.burn.layers[name] for name in self.spec.layerNames]
+        layers = [self.day.startingPerim] + [self.day.burn.layers[name] for name in self.spec.layers]
         stacked = np.dstack(layers)
         r = self.spec.AOIRadius
         # pad with zeros around border of image
@@ -58,9 +58,9 @@ class Sample(object):
 class SampleSpec(object):
     AOIRadius = 30
     AOISize = (2*AOIRadius+1, 2*AOIRadius+1)
-    layerNames = ['dem', 'ndvi']
-    numLayers = len(layerNames)
-    nonLayers = ['rel_hum', 'temp', 'dew_pt']
+    layers = ['dem', 'ndvi']
+    numLayers = len(layers)
+    nonLayers = ['total_precip', 'temp1', 'temp2', 'rel_hum', 'wind_N', 'wind_S', 'wind_E', 'wind_W']
     numNonLayers = len(nonLayers)
 
 def makeSamples(days, spec=SampleSpec):
@@ -82,12 +82,19 @@ def getBatches(samples, batchSize=BATCH_SIZE, shuffle=True):
         yield samples[i:i+batchSize]
 
 def toModelInput(batch):
-    spatials = np.array([sample.getSpatialData() for sample in batch])
     nonSpatials = np.array([sample.getNonSpatialData() for sample in batch])
+    spatials = np.array([sample.getSpatialData() for sample in batch])
     return [nonSpatials, spatials]
 
 def toModelOutput(batch):
     return np.array([sample.getOutput() for sample in batch])
+
+def generateTrainingData(samples, batchSize=BATCH_SIZE, shuffle=True):
+    while True:
+        for batch in getBatches(samples, batchSize, shuffle):
+            inp = toModelInput(batch)
+            out = toModelOutput(batch)
+            yield (inp, out)
 
 def vulnerablePixels(day, radius=VULNERABLE_RADIUS):
     '''Return a boolean mask of the pixels that are close to the current fire perimeter. radius is in meters.'''
