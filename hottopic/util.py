@@ -9,10 +9,6 @@ def listdir(path):
         return not fname.startswith('.') and not fname.startswith("_")
     return [f for f in os.listdir(path) if isGood(f)]
 
-def isValidImg(fname):
-    img = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
-    return img is not None
-
 def normalize(arr, axis=None):
     '''Rescale an array so that it varies from 0-1.
 
@@ -30,22 +26,29 @@ def normalize(arr, axis=None):
 
 def openImg(fname):
     if not os.path.exists(fname):
-        raise ValueError("The file {} does not exist.".format(fname))
-    if "/perims/" in fname:
-        img = cv2.imread(fname, 0)
-    else:
-        img = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
-    try:
-        img = img.astype(np.float32)
-    except AttributeError:
+        raise FileNotFoundError("The file {} does not exist.".format(fname))
+    img = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
+    if img is None:
         raise ValueError("Could not open the file {} as an image".format(fname))
-
+    img = img.astype(np.float32)
     # go through all the channels
     channels = cv2.split(img)
     for c in channels:
         # find any "invalid" pixels and set them to nan, so we can find them easily later
         c[invalidPixelIndices(c)] = np.nan
     return cv2.merge(channels)
+
+def openPerim(fname):
+    if not os.path.exists(fname):
+        raise FileNotFoundError("The file {} does not exist.".format(fname))
+    img = cv2.imread(fname, 0)
+    if img is None:
+        raise ValueError("Could not open the file {} as an image".format(fname))
+    img = img.astype(np.uint8)
+    if len(img.shape>2):
+        img = img[:,:,0]
+    img[invalidPixelIndices(img)] = np.nan
+    return img
 
 def validPixelIndices(layer):
     validPixelMask = 1-invalidPixelMask(layer)
@@ -83,13 +86,16 @@ def availableBurnNames():
 
 def availableDates(burnName):
     '''Given a fire, return a list of all dates that we can train on'''
-    directory = 'data/{}/'.format(burnName)
+    directory = 'data' + os.sep + burnName + os.sep
 
-    weatherFiles = listdir(directory+'weather/')
+    weatherFiles = listdir(directory+'weather' + os.sep)
     weatherDates = [fname[:-len('.csv')] for fname in weatherFiles]
 
-    perimFiles = listdir(directory+'perims/')
-    perimDates = [fname[:-len('.tif')] for fname in perimFiles if isValidImg(directory+'perims/'+fname)]
+    perimFiles = listdir(directory+'perims' + os.sep)
+    perimDates = [fname[:-len('.tif')] for fname in perimFiles]
+
+    print('exploring burn', burnName)
+    print('found the dates', weatherDates, perimDates)
 
     # we can only use days which have perimeter data on the following day
     daysWithFollowingPerims = []
