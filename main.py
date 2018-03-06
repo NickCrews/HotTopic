@@ -39,17 +39,29 @@ def example():
         # print(out.shape)
     m.fitOnSamples(s)
 
+def trainAndTestSets():
+    testing = ['peekaboo', 'pineTree']
+    train = [ht.rawdata.getDay(b,d) for (b,d) in ht.util.availableBurnsAndDates() if b not in testing]
+    test = [ht.rawdata.getDay(b,d) for (b,d) in ht.util.availableBurnsAndDates() if b in testing]
+    return train, test
 
+def train():
+    m = ht.model.FireModel()
+    m.save('firstFit')
+    train, test = trainAndTestSets()
+    s = ht.sample.makeSamples(train)
+    m.fitOnSamples(s)
+    m.save('firstFit')
 
 if __name__ == '__main__':
-    # example()
+    train()
     # fitPreprocessor()
     # usePreprocessor()
     # samples()
     # useGui()
     # predict()
-    for pair in ht.util.availableBurnsAndDates():
-        print(pair)
+    # for pair in ht.util.availableBurnsAndDates():
+    #     print(pair)
 
 
 # import numpy as np
