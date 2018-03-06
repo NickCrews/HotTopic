@@ -51,7 +51,7 @@ class Burn(object):
 
     @staticmethod
     def fromFile(burnName):
-        print('loading Burn {}...'.format(burnName), end='\r')
+        print('loading Burn {}...'.format(burnName))
         l = Burn.loadLayers(burnName)
         b = Burn(burnName,l)
         days = {date:Day.fromFile(b, date) for date in ht.util.availableDates(burnName)}
@@ -115,23 +115,19 @@ class Day(object):
     @staticmethod
     def loadStartingPerim(burnName, date):
         fname =  'data' + os.sep + burnName + os.sep + 'perims' + os.sep + date+'.tif'
-        perim = cv2.imread(fname, cv2.IMREAD_UNCHANGED)
-        if perim is None:
-            raise RuntimeError('Could not find a perimeter for the fire {} for the day {}'.format(burnName, date))
+        perim = ht.util.openPerim(fname)
         perim[perim!=0] = 255
         return perim
 
     @staticmethod
     def loadEndingPerim(burnName, date):
         guess1, guess2 = ht.util.possibleNextDates(date)
-        fname = 'data' + os.sep + burnName + os.sep + 'perims' + os.sep + guess1+'.tif'
-        perim = ht.util.openPerim(fname)
-        if perim is None:
+        directory = 'data' + os.sep + burnName + os.sep + 'perims' + os.sep
+        try:
+            perim = ht.util.openPerim(directory + guess1 + '.tif')
+        except FileNotFoundError:
             # overflowed the month, that file didnt exist
-            fname = 'data' + os.sep + burnName + os.sep + 'perims' + os.sep + guess2+'.tif'
-            perim = ht.util.openPerim(fname)
-            if perim is None:
-                raise RuntimeError('Could not open a perimeter for the fire {} for the day {} or {}'.format(burnName, guess1, guess2))
+            perim = ht.util.openPerim(directory + guess2 + '.tif')
         return perim
 
     def __repr__(self):
