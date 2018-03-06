@@ -12,6 +12,7 @@ BATCH_SIZE = 32 #number of samples per batch of training
 class Sample(object):
 
     stackedAndPadded = {}
+    weatherMetrics = {}
 
     def __init__(self, spec, day, loc):
         self.spec = spec
@@ -32,14 +33,19 @@ class Sample(object):
         return result
 
     def getNonSpatialData(self):
-        rw = self.day.weather #rawWeather
-        precip = ht.util.totalPrecipitation(rw)
-        temp = ht.util.maximumTemperature1(rw)
-        temp2 = ht.util.maximumTemperature2(rw)
-        hum = ht.util.averageHumidity(rw)
-        winds = ht.util.windMetrics(rw)
-        allMetrics = [precip, temp, temp2, hum] + winds
-        return np.array(allMetrics)
+        if self.day in Sample.weatherMetrics:
+            return Sample.weatherMetrics[self.day]
+        else:
+            rw = self.day.weather #rawWeather
+            precip = ht.util.totalPrecipitation(rw)
+            temp = ht.util.maximumTemperature1(rw)
+            temp2 = ht.util.maximumTemperature2(rw)
+            hum = ht.util.averageHumidity(rw)
+            winds = ht.util.windMetrics(rw)
+            allMetrics = [precip, temp, temp2, hum] + winds
+            result = np.array(allMetrics)
+            Sample.weatherMetrics[self.day] = result
+            return result
 
     def getOutput(self):
         return self.day.endingPerim[self.loc]
@@ -63,12 +69,16 @@ class SampleSpec(object):
     nonLayers = ['total_precip', 'temp1', 'temp2', 'rel_hum', 'wind_N', 'wind_S', 'wind_E', 'wind_W']
     numNonLayers = len(nonLayers)
 
-def makeSamples(days, spec=SampleSpec):
+def makeSamples(days, spec=SampleSpec, doFilter=True):
     samples = []
     for day in days:
-        vulnerable = vulnerablePixels(day)
-        evened = evenOutPositiveAndNegative(day, vulnerable)
-        ys, xs =  np.where(evened)
+        if doFilter:
+            vulnerable = vulnerablePixels(day)
+            mask = evenOutPositiveAndNegative(day, vulnerable)
+        else:
+            # use all the points
+            mask = np.ones_like(day.startingPerim, dtype=np.uint8)
+        ys, xs =  np.where(mask)
         print('Making samples from {} locations in the day {}'.format(len(xs), day))
         for y,x in zip(ys,xs):
             s = Sample(spec, day, (y,x))
