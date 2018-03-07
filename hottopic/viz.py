@@ -21,10 +21,10 @@ def renderDay(day):
 
     use HSV color space. value of pixel is DEM. Colored pixels
     represent burned area. color determines if it was burned before or after'''
-    v = util.normalize(day.burn.layers['dem'])
+    v = util.normalize(day.layers['dem'])
     h = np.ones_like(v, dtype=np.float32)*.1
-    s = (day.endingPerim*.8).astype(np.float32)
-    h[np.where(day.startingPerim)] = .3
+    s = (day.layers['ending_perim']*.8).astype(np.float32)
+    h[np.where(day.layers['starting_perim'])] = .3
     hsv = cv2.merge((h,s,v))
     hsv = (hsv*255).astype(np.uint8)
     img = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
@@ -33,7 +33,7 @@ def renderDay(day):
 def renderUsedPixels(dataset, burnName, date):
     # burnName, date = day.burn.name, day.date
     mask = dataset.masks[burnName][date]
-    # bg = day.burn.layers['dem']
+    # bg = day.layers['dem']
     # background = cv2.merge((bg,bg,bg))
     return mask*127
 
@@ -72,13 +72,13 @@ def createCanvases(dataset):
     for burnName, date in dataset.getUsedBurnNamesAndDates():
         burn = dataset.data.burns[burnName]
         day = dataset.data.getDay(burnName, date)
-        h,w = day.startingPerim.shape
+        h,w = day.layers['starting_perim'].shape
         # canvas = np.zeros((h,w,3), dtype=np.uint8)
         normedDEM = util.normalize(burn.layers['dem'])
         canvas = cv2.cvtColor(normedDEM, cv2.COLOR_GRAY2RGB)
 
-        im2, startContour, hierarchy = cv2.findContours(day.startingPerim.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        im2, endContour, heirarchy = cv2.findContours(day.endingPerim.astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        im2, startContour, hierarchy = cv2.findContours(day.layers['starting_perim'].astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        im2, endContour, heirarchy = cv2.findContours(day.layers['ending_perim'].astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(canvas, endContour, -1, (0,0,1), 1)
         cv2.drawContours(canvas, startContour, -1, (0,1,0), 1)
 
@@ -176,8 +176,8 @@ def showPredictions(predictionsRenders):
     # anim.event_source.start()
 
 def renderPerformance(model, samples):
-    expCanvas = np.empty_like(samples[0].day.startingPerim, dtype=np.float32)
-    predCanvas = np.empty_like(samples[0].day.startingPerim, dtype=np.float32)
+    expCanvas = np.empty_like(samples[0].day.layers['starting_perim'], dtype=np.float32)
+    predCanvas = np.empty_like(samples[0].day.layers['starting_perim'], dtype=np.float32)
     expCanvas[:,:] = np.nan
     predCanvas[:,:] = np.nan
     bs = 1024

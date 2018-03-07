@@ -98,7 +98,7 @@ class PreProcessor(object):
                 burns[day.burn] = newBurn
             # make the new Day and add it to burn
             newWeather = self._applyFitToWeather(day.weather)
-            newDay = ht.rawdata.Day(newBurn, day.date, newWeather, day.startingPerim, day.endingPerim)
+            newDay = ht.rawdata.Day(newBurn, day.date, newWeather, day.layers['starting_perim'], day.layers['ending_perim'])
             newBurn.days[day.date] = newDay
             results.append(newDay)
         return results
@@ -139,7 +139,7 @@ class PreProcessor(object):
     #     return paddedLayers
     #
     # def normalizeLayers(self, day):
-    #     normed = [day.startingPerim]
+    #     normed = [day.layers['starting_perim']]
     #     for layerName in self.whichLayers:
     #         # if layerName not in self.fits:
     #         #     raise ValueError('preProcessor was not fitted for the layer {}'.format(layerName))
@@ -148,7 +148,7 @@ class PreProcessor(object):
     #         # else:
     #         #     # print('normalizing layer', name)
     #         #     result[name] = normalizeNonElevations(data)
-    #         layer = day.burn.layers[layerName]
+    #         layer = day.layers[layerName]
     #         normed.append(layer)
     #     return normed
     #

@@ -88,12 +88,12 @@ class Burn(object):
 
 class Day(object):
 
-    def __init__(self, burn, date, weather, startingPerim, endingPerim):
+    def __init__(self, burn, date, weather, starting_perim, ending_perim):
         self.burn = burn
         self.date = date
         self.weather = weather
-        self.startingPerim = startingPerim
-        self.endingPerim = endingPerim
+        self.layers = {'starting_perim': starting_perim, 'ending_perim':ending_perim}
+        self.layers.update(self.burn.layers)
 
     @staticmethod
     def fromFile(burn, date):

@@ -48,10 +48,10 @@ class Sample(object):
             return result
 
     def getOutput(self):
-        return self.day.endingPerim[self.loc]
+        return self.day.layers['ending_perim'][self.loc]
 
     def stackAndPad(self):
-        layers = [self.day.startingPerim] + [self.day.burn.layers[name] for name in self.spec.layers]
+        layers = [self.day.layers[name] for name in self.spec.layers]
         stacked = np.dstack(layers)
         r = self.spec.AOIRadius
         # pad with zeros around border of image
@@ -64,7 +64,7 @@ class Sample(object):
 class SampleSpec(object):
     AOIRadius = 30
     AOISize = (2*AOIRadius+1, 2*AOIRadius+1)
-    layers = ['dem', 'ndvi']
+    layers = ['starting_perim', 'dem', 'ndvi']
     numLayers = len(layers)
     nonLayers = ['total_precip', 'temp1', 'temp2', 'rel_hum', 'wind_N', 'wind_S', 'wind_E', 'wind_W']
     numNonLayers = len(nonLayers)
@@ -77,7 +77,7 @@ def makeSamples(days, spec=SampleSpec, doFilter=True):
             mask = evenOutPositiveAndNegative(day, vulnerable)
         else:
             # use all the points
-            mask = np.ones_like(day.startingPerim, dtype=np.uint8)
+            mask = np.ones_like(day.layers['starting_perim'], dtype=np.uint8)
         ys, xs =  np.where(mask)
         print('Making samples from {} locations in the day {}'.format(len(xs), day))
         for y,x in zip(ys,xs):
@@ -108,7 +108,7 @@ def generateTrainingData(samples, batchSize=BATCH_SIZE, shuffle=True):
 
 def vulnerablePixels(day, radius=VULNERABLE_RADIUS):
     '''Return a boolean mask of the pixels that are close to the current fire perimeter. radius is in meters.'''
-    startingPerim = day.startingPerim.astype(np.uint8)
+    startingPerim = day.layers['starting_perim'].astype(np.uint8)
     kernel = np.ones((3,3))
     its = int(round((2*(radius/ht.rawdata.PIXEL_SIZE)**2)**.5))
     dilated = cv2.dilate(startingPerim, kernel, iterations=its)
@@ -118,7 +118,7 @@ def vulnerablePixels(day, radius=VULNERABLE_RADIUS):
 def evenOutPositiveAndNegative(day, mask):
     '''Make it so the chosen pixels for a day is a more even mixture of yes and no outputs.
     day is the Day to look at. mask is the boolean mask of locations we are looking at now'''
-    didBurn = day.endingPerim.astype(np.uint8)
+    didBurn = day.layers['ending_perim'].astype(np.uint8)
     didNotBurn = 1-didBurn
     # all the pixels we are training on that DID and did NOT burn
     pos = np.bitwise_and(didBurn, mask)

@@ -17,7 +17,6 @@ class ImageBranch(Sequential):
     def __init__(self, nchannels, kernelDiam):
         super().__init__()
         # there is also the starting perim which is implicitly gonna be included
-        nchannels += 1
         input_shape = (kernelDiam, kernelDiam, nchannels)
 
         self.add(AveragePooling2D(pool_size=(2,2), strides=(2,2), input_shape=input_shape))
