@@ -64,7 +64,7 @@ class Sample(object):
 class SampleSpec(object):
     AOIRadius = 30
     AOISize = (2*AOIRadius+1, 2*AOIRadius+1)
-    layers = ['starting_perim', 'dem', 'ndvi']
+    layers = ['starting_perim', 'dem', 'ndvi', 'band_2', 'band_3', 'band_4', 'aspect']
     numLayers = len(layers)
     nonLayers = ['total_precip', 'temp1', 'temp2', 'rel_hum', 'wind_N', 'wind_S', 'wind_E', 'wind_W']
     numNonLayers = len(nonLayers)
