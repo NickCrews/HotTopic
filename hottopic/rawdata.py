@@ -63,24 +63,21 @@ class Burn(object):
     def loadLayers(burnName):
         folder = 'data' + os.sep + burnName + os.sep
         dem =    ht.util.openImg(folder+'dem.tif')
-        # slope = util.openImg(folder+'slope.tif')
+        slope =  ht.util.openImg(folder+'slope.tif')
         band_2 = ht.util.openImg(folder+'band_2.tif')
         band_3 = ht.util.openImg(folder+'band_3.tif')
         band_4 = ht.util.openImg(folder+'band_4.tif')
         band_5 = ht.util.openImg(folder+'band_5.tif')
         ndvi =   ht.util.openImg(folder+'ndvi.tif')
         aspect = ht.util.openImg(folder+'aspect.tif')
-        # r,g,b,nir = cv2.split(landsat)
-
         layers = {'dem':dem,
-                # 'slope':slope,
+                'slope':slope,
                 'ndvi':ndvi,
                 'aspect':aspect,
                 'band_4':band_4,
                 'band_3':band_3,
                 'band_2':band_2,
                 'band_5':band_5}
-
         return layers
 
     def __repr__(self):
