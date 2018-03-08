@@ -81,7 +81,7 @@ class PreProcessor(object):
             fits = json.load(fp)
         return PreProcessor(fits=fits)
 
-    def process(self, days):
+    def process(self, days, spec=ht.sample.SampleSpec):
         if len(self.fits) == 0:
             raise ValueError('Must fit() before!')
         burns = {}
@@ -91,7 +91,7 @@ class PreProcessor(object):
             if day.burn in burns:
                 newBurn = burns[day.burn]
             else:
-                newLayers = self._applyFitToLayers(day.burn.layers)
+                newLayers = self._applyFitToLayers(day.layers, spec)
                 oldBurnName = day.burn.name
                 newBurnName = oldBurnName + '_processed_' + strftime("%d%b%H_%M", localtime())
                 newBurn = ht.rawdata.Burn(newBurnName, newLayers)
@@ -103,12 +103,15 @@ class PreProcessor(object):
             results.append(newDay)
         return results
 
-    def _applyFitToLayers(self, layers):
+    def _applyFitToLayers(self, layers, spec):
         if len(self.fits) == 0:
             raise ValueError('Must fit() before!')
         newLayers = {}
-        for name, lay in layers.items():
-            if name != 'dem':
+        for name in spec.layers:
+            lay = layers[name]
+            if name =='starting_perim':
+                newLayers[name] = lay
+            elif name != 'dem':
                 mean = self.fits[name+'_mean']
                 std = self.fits[name+'_std']
                 newLayer = (lay-mean) / std
