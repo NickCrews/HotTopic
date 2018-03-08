@@ -72,21 +72,29 @@ def createCanvases(dataset):
     for burnName, date in dataset.getUsedBurnNamesAndDates():
         burn = dataset.data.burns[burnName]
         day = dataset.data.getDay(burnName, date)
-        h,w = day.layers['starting_perim'].shape
-        # canvas = np.zeros((h,w,3), dtype=np.uint8)
-        normedDEM = util.normalize(burn.layers['dem'])
-        canvas = cv2.cvtColor(normedDEM, cv2.COLOR_GRAY2RGB)
-
-        im2, startContour, hierarchy = cv2.findContours(day.layers['starting_perim'].astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        im2, endContour, heirarchy = cv2.findContours(day.layers['ending_perim'].astype(np.uint8), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        cv2.drawContours(canvas, endContour, -1, (0,0,1), 1)
-        cv2.drawContours(canvas, startContour, -1, (0,1,0), 1)
-
-        result[(burnName, date)] = canvas
-
-        # plt.imshow(canvas)
-        # plt.show()
+        result[(burnName, date)] = renderCanvas(day)
     return result
+
+def renderCanvas(day):
+    '''return the DEM with the start and end perims overlayed, in BGR'''
+    normedDEM = ht.util.normalize(day.layers['dem'])
+    canvas = cv2.cvtColor(normedDEM, cv2.COLOR_GRAY2BGR)
+    sp = day.layers['starting_perim'].astype(np.uint8).copy()
+    ep = day.layers['ending_perim'].astype(np.uint8).copy()
+    im2, startContour, hierarchy = cv2.findContours(sp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    im2, endContour, heirarchy = cv2.findContours(ep, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(canvas, endContour, -1, (0,0,1), 1)
+    cv2.drawContours(canvas, startContour, -1, (0,1,0), 1)
+    return canvas
+
+def overlayPredictions(canvas, predictions):
+    clipped = np.clip(predictions,0,1)
+    yellowToRed = np.dstack((np.zeros_like(clipped), 1-clipped, np.ones_like(clipped)))
+    ytrh, ytrs, ytrv = cv2.split(cv2.cvtColor(yellowToRed, cv2.COLOR_BGR2HSV))
+    ch,cs,cv = cv2.split(cv2.cvtColor(canvas, cv2.COLOR_BGR2HSV))
+    # copy perim colors onto yellowToRed
+    ytrh[cs!=0] = ch[cs!=0]
+    return cv2.cvtColor(cv2.merge((ytrh, ytrs, cv)), cv2.COLOR_HSV2BGR)
 
 def overlay(predictionRenders, canvases):
     result = {}
@@ -96,13 +104,6 @@ def overlay(predictionRenders, canvases):
         yellowToRed = np.dstack((np.ones_like(render), 1-(render-1), np.zeros_like(render)))
         canvas[render>1] = yellowToRed[render>1]
         result[(burnName, date)] = canvas
-
-        # plt.imshow(canvases[(burnName, date)])
-        # plt.figure('render')
-        # plt.imshow(render)
-        # plt.figure(burnName +' '+date)
-        # plt.imshow(canvas)
-        # plt.show()
     return result
 
 def visualizePredictions(dataset, predictions):
