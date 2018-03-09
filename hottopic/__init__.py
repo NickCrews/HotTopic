@@ -3,6 +3,7 @@ from . import util
 
 from . import dataset
 from . import rawdata
+from . import augment
 from . import sample
 from . import preprocess
 from . import model
