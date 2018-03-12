@@ -3,6 +3,7 @@
 
 hottopic/__pycache__/*
 hottopic/.*
+hottopic/viz/.*
 
 models/*
 !models/.placeholder

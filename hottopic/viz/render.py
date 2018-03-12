@@ -75,16 +75,18 @@ def createCanvases(dataset):
         result[(burnName, date)] = renderCanvas(day)
     return result
 
-def renderCanvas(day):
+def renderCanvas(day, base='dem', start_perimeter=True, end_perimeter=True):
     '''return the DEM with the start and end perims overlayed, in BGR'''
-    normedDEM = ht.util.normalize(day.layers['dem'])
+    normedDEM = ht.util.normalize(day.layers[base])
     canvas = cv2.cvtColor(normedDEM, cv2.COLOR_GRAY2BGR)
-    sp = day.layers['starting_perim'].astype(np.uint8).copy()
-    ep = day.layers['ending_perim'].astype(np.uint8).copy()
-    im2, startContour, hierarchy = cv2.findContours(sp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    im2, endContour, heirarchy = cv2.findContours(ep, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(canvas, endContour, -1, (0,0,1), 1)
-    cv2.drawContours(canvas, startContour, -1, (0,1,0), 1)
+    if end_perimeter:
+        ep = day.layers['ending_perim'].astype(np.uint8).copy()
+        im2, endContour, heirarchy = cv2.findContours(ep, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(canvas, endContour, -1, (0,0,1), 1)
+    if start_perimeter:
+        sp = day.layers['starting_perim'].astype(np.uint8).copy()
+        im2, startContour, hierarchy = cv2.findContours(sp, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(canvas, startContour, -1, (0,1,0), 1)
     return canvas
 
 def overlayPredictions(canvas, predictions):

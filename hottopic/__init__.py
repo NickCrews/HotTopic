@@ -11,9 +11,10 @@ from . import conv
 
 try:
     from . import viz
-    from . import async
-    from . import basicgui
-    from . import gui
-    print('Imported the visualization modules successfully!')
+    from .viz import render
+    from .viz import async
+    from .viz import gui
+    from .viz import dayviewer
+    print('Successfully imported the visualization modules')
 except:
     print('Failed to import the visualization modules!')

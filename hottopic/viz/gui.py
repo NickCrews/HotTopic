@@ -6,12 +6,14 @@ import multiprocessing
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 # dynamically generate the gui skeleton file from the ui file
-with open('hottopic' + os.sep + 'basicgui.py', 'w') as pyfile:
-    uic.compileUi('hottopic' + os.sep + 'basicgui.ui', pyfile)
+with open('hottopic' + os.sep + 'viz' + os.sep + 'basicgui.py', 'w') as pyfile:
+    uic.compileUi('hottopic' + os.sep + 'viz' + os.sep + 'basicgui.ui', pyfile)
 
+# from . import hottopic as ht
 import hottopic as ht
+from . import basicgui
 
-class GUI(ht.basicgui.Ui_GUI, QtCore.QObject):
+class GUI(ht.viz.basicgui.Ui_GUI, QtCore.QObject):
 
     sigPredict = QtCore.pyqtSignal(str,str)
 
@@ -168,13 +170,13 @@ class GUI(ht.basicgui.Ui_GUI, QtCore.QObject):
 
     def displayBurn(self, burnName):
         burn = ht.rawdata.getBurn(burnName)
-        dem = ht.viz.renderBurn(burn)
+        dem = ht.viz.render.renderBurn(burn)
         resized = cv2.resize(dem, self.BURN_RENDER_SIZE)
         self.showImage(resized, self.burnDisplay)
 
     def displayDay(self, burnName, date):
         day = ht.rawdata.getDay(burnName, date)
-        img = ht.viz.renderDay(day)
+        img = ht.viz.render.renderDay(day)
         resized = cv2.resize(img, self.BURN_RENDER_SIZE)
         self.showImage(resized, self.burnDisplay)
         # print('displaying day:', day)

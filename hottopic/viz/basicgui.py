@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'hottopic/basicgui.ui'
+# Form implementation generated from reading ui file 'hottopic/viz/basicgui.ui'
 #
 # Created by: PyQt5 UI code generator 5.10
 #
