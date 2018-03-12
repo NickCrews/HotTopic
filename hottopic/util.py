@@ -7,7 +7,9 @@ def listdir(path):
     '''List all the files in a path that are not hidden (begin with a .)'''
     def isGood(fname):
         return not fname.startswith('.') and not fname.startswith("_")
-    return [f for f in os.listdir(path) if isGood(f)]
+    for f in os.listdir(path):
+        if isGood(f):
+            yield f
 
 def normalize(arr, axis=None):
     '''Rescale an array so that it varies from 0-1.
@@ -77,7 +79,7 @@ def invalidPixelMask(layer):
     return noDataMask
 
 def availableBurnNames():
-    return listdir('data/')
+    yield from listdir('data/')
 
 def availableDates(burnName):
     '''Given a fire, return a list of all dates that we can train on'''
@@ -88,25 +90,17 @@ def availableDates(burnName):
 
     perimFiles = listdir(directory+'perims' + os.sep)
     perimDates = [fname[:-len('.tif')] for fname in perimFiles]
-    # we can only use days which have perimeter data on the following day
-    daysWithFollowingPerims = []
+    perimDates.sort()
+    # we can only use days which have perimeter and weather data on the following day
     for d in perimDates:
-        nextDay1, nextDay2 = possibleNextDates(d)
-        if nextDay1 in perimDates or nextDay2 in perimDates:
-            daysWithFollowingPerims.append(d)
-
-    # now we have to verify that we have weather for these days as well
-    daysWithWeatherAndPerims = [d for d in daysWithFollowingPerims if d in weatherDates]
-    daysWithWeatherAndPerims.sort()
-    return daysWithWeatherAndPerims
+        a, b = possibleNextDates(d)
+        if (a in perimDates and a in weatherDates) or (b in perimDates and b in weatherDates):
+            yield d
 
 def availableBurnsAndDates():
-    avail = []
     for burnName in availableBurnNames():
         for date in availableDates(burnName):
-            avail.append((burnName, date))
-    avail.sort()
-    return avail
+            yield (burnName, date)
 
 def possibleNextDates(dateString):
     month, day = dateString[:2], dateString[2:]
