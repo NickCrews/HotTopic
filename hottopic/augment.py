@@ -6,12 +6,12 @@ from time import localtime, strftime
 
 import numpy as np
 import cv2
+import scipy.ndimage as ndi
 
 import hottopic as ht
 
 def apply_transform(x,
                     transform_matrix,
-                    channel_axis=-1,
                     fill_mode='constant',
                     cval=0.):
     """Apply the image transformation specified by a matrix.
@@ -27,6 +27,7 @@ def apply_transform(x,
     # Returns
         The transformed version of the input.
     """
+    channel_axis = 2
     x = np.rollaxis(x, channel_axis, 0)
     final_affine_matrix = transform_matrix[:2, :2]
     final_offset = transform_matrix[:2, 2]
@@ -52,30 +53,35 @@ def transform_matrix_offset_center(matrix, x, y):
     transform_matrix = np.dot(np.dot(offset_matrix, matrix), reset_matrix)
     return transform_matrix
 
-
+def flip_axis(x, axis):
+    x = np.asarray(x).swapaxes(axis, 0)
+    x = x[::-1, ...]
+    x = x.swapaxes(0, axis)
+    return x
 
 class Augmentor(object):
 
     def __init__(self,
-                rotation_range=0.,
-                shear_range=0.,
-                zoom_range=0.,
-                fill_mode='nearest',
-                cval=0.,
+                rotation_range=180.,
+                # shear_range=0.,
+                zoom_range=.05,
+                # fill_mode='nearest',
+                # cval=0.,
                 horizontal_flip=True,
-                vertical_flip=True,
-                rescale=None):
+                vertical_flip=True
+                # rescale=None
+                ):
         self.rotation_range = rotation_range
-        self.width_shift_range = width_shift_range
-        self.height_shift_range = height_shift_range
-        self.brightness_range = brightness_range
-        self.shear_range = shear_range
+        # self.width_shift_range = width_shift_range
+        # self.height_shift_range = height_shift_range
+        # self.brightness_range = brightness_range
+        # self.shear_range = shear_range
         self.zoom_range = zoom_range
-        self.fill_mode = fill_mode
-        self.cval = cval
+        # self.fill_mode = fill_mode
+        # self.cval = cval
         self.horizontal_flip = horizontal_flip
         self.vertical_flip = vertical_flip
-        self.rescale = rescale
+        # self.rescale = rescale
 
         if np.isscalar(zoom_range):
             self.zoom_range = [1 - zoom_range, 1 + zoom_range]
@@ -86,13 +92,14 @@ class Augmentor(object):
                              'a tuple or list of two floats. '
                              'Received arg: ', zoom_range)
 
-    def augment(day):
+    def augment(self, day):
         names = list(day.layers.keys())
         layers = [day.layers[name] for name in names]
         img = np.dstack(layers)
 
         # apply the transforms
         params = self.generate_parameters()
+        print('augmenting with', params)
         new_img = self.transform_layers(img, params)
         new_weather = self.transform_weather(day.weather, params)
 
@@ -156,14 +163,15 @@ class Augmentor(object):
             h, w = img.shape[:2]
             # make the transform happena round the center of the image, not the UL corner
             transform_matrix = transform_matrix_offset_center(transform_matrix, h, w)
-            img = apply_transform(img,transform_matrix, img_channel_axis,
-                                fill_mode=self.fill_mode, cval=self.cval)
+            img = apply_transform(img,transform_matrix, fill_mode='constant', cval=0.0)
 
         if flip_hor:
-            img = flip_axis(img,img_col_axis)
+            # 1 is axis for columns
+            img = flip_axis(img,1)
 
         if flip_ver:
-            img = flip_axis(img,img_row_axis)
+            # 0 is axis for rows
+            img = flip_axis(img,0)
 
         return img
 
