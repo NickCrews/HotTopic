@@ -60,8 +60,10 @@ def trainAndTestSets():
 
 def train(epochs=10):
     m = make_model(ht.sample.SampleSpec.numLayers)
-    train, test = trainAndTestSets()
-    pre = ht.preprocess.PreProcessor.fromFile('fitWithSlope')
+    train = ht.rawdata.chooseDays()
+    pre = ht.preprocess.PreProcessor()
+    pre.fit(train)
+    pre.save('secondConvFit')
     normed = pre.process(train)
     for e in range(epochs):
         for day in normed:
@@ -71,12 +73,12 @@ def train(epochs=10):
             assert np.isnan(out).any() == False
             # print(inp.shape, out.shape)
             m.fit(inp, out)
-    m.save('models/conv.h5')
+    m.save('models/secondConv.h5')
 
 def test():
-    m = keras.models.load_model('models/conv.h5')
-    train, test = trainAndTestSets()
-    pre = ht.preprocess.PreProcessor.fromFile('fitWithSlope')
+    m = keras.models.load_model('models/secondConv.h5')
+    test = ht.rawdata.chooseDays()
+    pre = ht.preprocess.PreProcessor.fromFile('secondConvFit')
     normed = pre.process(test)
     for day in normed:
         inp, expected = np.expand_dims(getInputs(day),axis=0), np.expand_dims(getOutput(day), axis=0)
@@ -89,9 +91,8 @@ def test():
         # cv2 uses (w,h) and numpy uses (h,w) WTF
         h,w = day.layers['starting_perim'].shape
         out = cv2.resize(out, (w,h))
-        canvas = ht.viz.renderCanvas(day)
-        print(out.shape, canvas.shape)
-        viz = ht.viz.overlayPredictions(canvas, out)
+        canvas = ht.viz.render.renderCanvas(day)
+        viz = ht.viz.render.overlayPredictions(canvas, out)
         cv2.imshow('viz', viz)
         # expected = np.squeeze(expected)
         # print(inp.dtype, expected.dtype, out.dtype)

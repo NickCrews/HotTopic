@@ -1,4 +1,5 @@
 
+import time
 import hottopic as ht
 
 def useGui():
@@ -14,7 +15,7 @@ def fitPreprocessor():
     p = ht.preprocess.PreProcessor()
     allDays = ht.rawdata.getAllDays()
     p.fit(allDays)
-    p.save('firstFit.json')
+    p.save('fitWithSlope.json')
 
 def usePreprocessor():
     p = ht.preprocess.PreProcessor.fromFile('firstFit')
@@ -24,7 +25,7 @@ def usePreprocessor():
     # print(res)
     for newDay in res:
         print(newDay.weather)
-        print(newDay.burn.layers['dem'])
+        print(newDay.layers['dem'])
 
 def example():
     allDays = ht.rawdata.getAllDays()
@@ -61,9 +62,22 @@ def train():
 def trainOnOne():
     m = ht.model.FireModel()
     days = [ht.rawdata.getDay('beaverCreek', '0804')]
-    samples = ht.sample.makeSamples(days)
+    pre = ht.preprocess.PreProcessor.fromFile('firstFit')
+    normed = pre.process(days)
+    print(normed)
+    samples = ht.sample.makeSamples(normed)
     m.fitOnSamples(samples, epochs=10)
-    m.save('bc0804')
+    m.save('NORMEDbc0804')
+
+def testOne():
+    m = ht.model.load('bc0804')
+    days = [ht.rawdata.getDay('beaverCreek', '0804')]
+    pre = ht.preprocess.PreProcessor.fromFile('firstFit')
+    normed = pre.process(days)
+    print(normed)
+    samples = ht.sample.makeSamples(normed)
+    renders = ht.viz.render.renderPerformance(m, samples)
+    ht.viz.render.show(*renders)
 
 def test():
     m = ht.model.load('secondFit')
@@ -71,12 +85,14 @@ def test():
     samples = ht.sample.makeSamples(train)
     peekabooSamples = [s for s in samples if s.day.burn.name=='redDirt2']
     # pineTreeSamples = [s for s in samples if s.day.burn.name=='pineTree']
-    peekabooRenders = ht.viz.renderPerformance(m, peekabooSamples)
-    ht.viz.show(*peekabooRenders)
+    peekabooRenders = ht.viz.render.renderPerformance(m, peekabooSamples)
+    ht.viz.render.show(*peekabooRenders)
+
 
 if __name__ == '__main__':
     # test()
-    trainOnOne()
+    # trainOnOne()
+    # testOne()
     # fitPreprocessor()
     # usePreprocessor()
     # samples()
@@ -84,6 +100,21 @@ if __name__ == '__main__':
     # predict()
     # for pair in ht.util.availableBurnsAndDates():
     #     print(pair)
+    #     day = ht.rawdata.getDay(*pair)
+    #     for layerName in day.layers:
+    #         print(layerName, day.layers[layerName])
+    #     print(day.layers['starting_perim'].shape)
+    # ht.conv.test()
+    # ht.conv.train()
+    aug = ht.augment.Augmentor()
+    viewer = ht.viz.dayviewer.DayViewer()
+    for day in ht.rawdata.getAllDays():
+        # viewer.show(day)
+        # viewer = ht.viz.dayviewer.DayViewer(day)
+        viewer.show(day)
+        new_day = aug.augment(day)
+        viewer.show(new_day)
+        print('done!')
 
 
 # import numpy as np
