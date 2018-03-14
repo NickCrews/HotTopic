@@ -33,6 +33,14 @@ def getDay(burnName, date):
     _days[(burnName, date)] = day
     return day
 
+def chooseDays():
+    burnsAndDates = ht.util.availableBurnsAndDates()
+    print("Choose your days:")
+    for i,(b,d) in enumerate(burnsAndDates):
+        print("{}: {},{}".format(i, b,d))
+    choices = [int(token) for token in input().split(' ')]
+    return [getDay(*burnsAndDates[i]) for i in choices]
+
 def getAllDays():
     for burnName, date in ht.util.availableBurnsAndDates():
         yield getDay(burnName, date)
@@ -42,6 +50,8 @@ def getAllBurns():
         yield getBurn(burnName)
 
 class Burn(object):
+
+    LAYERS = ['dem', 'slope', 'band_2', 'band_3', 'band_4', 'band_5', 'ndvi', 'aspect']
 
     def __init__(self, name, layers):
         self.name = name
@@ -62,22 +72,7 @@ class Burn(object):
     @staticmethod
     def loadLayers(burnName):
         folder = 'data' + os.sep + burnName + os.sep
-        dem =    ht.util.openImg(folder+'dem.tif')
-        slope =  ht.util.openImg(folder+'slope.tif')
-        band_2 = ht.util.openImg(folder+'band_2.tif')
-        band_3 = ht.util.openImg(folder+'band_3.tif')
-        band_4 = ht.util.openImg(folder+'band_4.tif')
-        band_5 = ht.util.openImg(folder+'band_5.tif')
-        ndvi =   ht.util.openImg(folder+'ndvi.tif')
-        aspect = ht.util.openImg(folder+'aspect.tif')
-        layers = {'dem':dem,
-                'slope':slope,
-                'ndvi':ndvi,
-                'aspect':aspect,
-                'band_4':band_4,
-                'band_3':band_3,
-                'band_2':band_2,
-                'band_5':band_5}
+        layers = {name: ht.util.openImg(folder+name+'.tif') for name in Burn.LAYERS}
         return layers
 
     def __repr__(self):
@@ -85,10 +80,13 @@ class Burn(object):
 
 class Day(object):
 
+    LAYERS = ['starting_perim', 'ending_perim']
+
     def __init__(self, burn, date, weather, starting_perim, ending_perim):
         self.burn = burn
         self.date = date
         self.weather = weather
+        # weather in form of np array of series [temp, dewpt, temp2, wdir, wspeed, precip, hum]
         self.layers = {'starting_perim': starting_perim, 'ending_perim':ending_perim}
         self.layers.update(self.burn.layers)
 
@@ -129,3 +127,6 @@ class Day(object):
 
     def __repr__(self):
         return "Day({},{})".format(self.burn.name, self.date)
+
+    def __eq__(self, other):
+        return repr(self) == repr(other)
