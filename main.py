@@ -112,8 +112,8 @@ if __name__ == '__main__':
         # viewer.show(day)
         # viewer = ht.viz.dayviewer.DayViewer(day)
         # viewer.show(day)
-        ht.viz.render.renderWindRose(day.weather, now=False)
-        ht.viz.render.renderWindRose(day.weather, nsector=4, now=True)        
+        ht.viz.render.renderWindRose(day, now=False)
+        ht.viz.render.renderWindRose(day, nsector=4, now=True)        
         # new_day = aug.augment(day)
         # viewer.show(new_day)
 

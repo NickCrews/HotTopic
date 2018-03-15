@@ -170,9 +170,18 @@ def showPredictions(predictionsRenders):
         plt.show()
 
 
-def renderWindRose(weather_matrix, nsector=16, now=True):
-    temp, dewpt, temp2, wdir, wspeed, precip, hum = weather_matrix
-    ax = ht.viz.windrose.WindroseAxes.from_ax()
+def renderWindRose(day, nsector=16, now=True):
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = day.weather
+
+    window_name = "{} - {} - Wind Data ({} sectors)".format(day.burn.name, day.date, nsector)
+    FIGSIZE_DEFAULT = (8, 8)
+    DPI_DEFAULT = 80
+    fig = plt.figure(window_name, figsize=FIGSIZE_DEFAULT, dpi=DPI_DEFAULT, facecolor='w', edgecolor='w')
+    rect = [0.1, 0.1, 0.8, 0.8]
+    ax = ht.viz.windrose.WindroseAxes(fig, rect, facecolor='w', rmax=None)
+    fig.add_axes(ax)
+    # ax = ht.viz.windrose.WindroseAxes.from_ax()
+
     ax.bar(wdir, wspeed, nsector=nsector, opening=0.8, edgecolor='white')
     # max_speed = int(wspeed.max())+1
     # bins = np.arange(0, max_speed, 1)
