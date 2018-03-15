@@ -111,10 +111,11 @@ if __name__ == '__main__':
     for day in ht.rawdata.getAllDays():
         # viewer.show(day)
         # viewer = ht.viz.dayviewer.DayViewer(day)
-        viewer.show(day)
-        new_day = aug.augment(day)
-        viewer.show(new_day)
-        print('done!')
+        # viewer.show(day)
+        ht.viz.render.renderWindRose(day.weather, now=False)
+        ht.viz.render.renderWindRose(day.weather, nsector=4, now=True)        
+        # new_day = aug.augment(day)
+        # viewer.show(new_day)
 
 
 # import numpy as np
