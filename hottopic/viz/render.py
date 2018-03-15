@@ -5,9 +5,9 @@ import math
 import numpy as np
 import cv2
 import matplotlib
-matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.cm as cm
 # print('Successfully imported pyplot')
 
 import hottopic as ht
@@ -170,13 +170,18 @@ def showPredictions(predictionsRenders):
         plt.show()
 
 
-    # anim = animation.FuncAnimation(fig, animfunc[,..other args])
+def renderWindRose(weather_matrix, nsector=16, now=True):
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = weather_matrix
+    ax = ht.viz.windrose.WindroseAxes.from_ax()
+    ax.bar(wdir, wspeed, nsector=nsector, opening=0.8, edgecolor='white')
+    # max_speed = int(wspeed.max())+1
+    # bins = np.arange(0, max_speed, 1)
+    # ax.contour(wdir, wspeed, bins=bins, cmap=cm.hot)
+    ax.set_legend()
+    if now:
+        plt.show()
+    return ax
 
-    #pause
-    # anim.event_source.stop()
-    #
-    # #unpause
-    # anim.event_source.start()
 
 def renderPerformance(model, samples):
     expCanvas = np.empty_like(samples[0].day.layers['starting_perim'], dtype=np.float32)
