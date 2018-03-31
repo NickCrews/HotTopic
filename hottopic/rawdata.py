@@ -66,7 +66,6 @@ class Burn(object):
         b = Burn(burnName,l)
         days = {date:Day.fromFile(b, date) for date in ht.util.availableDates(burnName)}
         b.days = days
-        print('loading Burn {}...done'.format(burnName))
         return b
 
     @staticmethod
@@ -92,11 +91,10 @@ class Day(object):
 
     @staticmethod
     def fromFile(burn, date):
-        print('loading Day {}, {}...'.format(burn.name, date), end='\r')
+        print('loading Day {}, {}...'.format(burn.name, date))
         w = Day.loadWeather(burn.name, date)
         sp = Day.loadStartingPerim(burn.name, date)
         ep = Day.loadEndingPerim(burn.name, date)
-        print('loading Day {}, {}...done'.format(burn.name, date))
         return Day(burn, date, w, sp, ep)
 
     @staticmethod
