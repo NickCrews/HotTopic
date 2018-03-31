@@ -41,9 +41,13 @@ def chooseDays():
     choices = [int(token) for token in input().split(' ')]
     return [getDay(*burnsAndDates[i]) for i in choices]
 
-def getAllDays():
-    for burnName, date in ht.util.availableBurnsAndDates():
-        yield getDay(burnName, date)
+def getAllDays(burnName=None):
+    if burnName is None:
+        for burnName, date in ht.util.availableBurnsAndDates():
+            yield getDay(burnName, date)
+    else:
+        for date in ht.util.availableDates(burnName):
+            yield getDay(burnName, date)
 
 def getAllBurns():
     for burnName in ht.util.availableBurnNames():
