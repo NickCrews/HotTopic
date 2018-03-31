@@ -102,7 +102,7 @@ class Augmentor(object):
 
         # apply the transforms
         params = self.generate_parameters()
-        print('augmenting with', params)
+        print('augmenting {} with'.format(day.burn.name+burn.date), params)
         new_img = self.transform_layers(img, params)
         new_weather = self.transform_weather(day.weather, params)
 

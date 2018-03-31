@@ -11,21 +11,24 @@ def predict():
     oneDay = ht.rawdata.getDay(*avail[0])
     m.predictDay(oneDay)
 
-def fitPreprocessor():
-    p = ht.preprocess.PreProcessor()
-    allDays = ht.rawdata.getAllDays()
-    p.fit(allDays)
-    p.save('fitWithSlope.json')
+def fitPreprocessorWithAugmented():
+    allBurnNames = list(ht.util.availableBurnNames())
+    #peekaboo, ecklund, redDirt2, redDirt, beaverCreek, riceRidge, junkins, gutzler, coldSprings, pineTree, haydenPass
+    testingBurnNames = ['coldSprings', 'riceRidge']
+    trainingBurnNames = [b for b in allBurnNames if b not in testingBurnNames]
+    trainingDays = []
+    for bn in trainingBurnNames:
+        trainingDays.extend(ht.rawdata.getAllDays(bn))
 
-def usePreprocessor():
-    p = ht.preprocess.PreProcessor.fromFile('firstFit')
-    print(p)
-    allDays = ht.rawdata.getAllDays()
-    res = p.process(allDays)
-    # print(res)
-    for newDay in res:
-        print(newDay.weather)
-        print(newDay.layers['dem'])
+    aug = ht.augment.Augmentor()
+    augmented = trainingDays.copy()
+    for _ in range(10):
+        augmented.extend(aug.augment(d) for d in trainingDays)
+
+    p = ht.preprocess.PreProcessor()
+    p.fit(augmented)
+    p.save('fitWithAugmented.json')
+
 
 def example():
     allDays = ht.rawdata.getAllDays()
@@ -88,12 +91,13 @@ def test():
     peekabooRenders = ht.viz.render.renderPerformance(m, peekabooSamples)
     ht.viz.render.show(*peekabooRenders)
 
-
 if __name__ == '__main__':
+    # for b in ht.util.availableBurnNames():
+    #     print(b)
     # test()
     # trainOnOne()
     # testOne()
-    # fitPreprocessor()
+    fitPreprocessor()
     # usePreprocessor()
     # samples()
     # useGui()
@@ -106,16 +110,16 @@ if __name__ == '__main__':
     #     print(day.layers['starting_perim'].shape)
     # ht.conv.test()
     # ht.conv.train()
-    aug = ht.augment.Augmentor()
-    viewer = ht.viz.dayviewer.DayViewer()
-    for day in ht.rawdata.getAllDays():
-        # viewer.show(day)
-        # viewer = ht.viz.dayviewer.DayViewer(day)
-        # viewer.show(day)
-        ht.viz.render.renderWindRose(day, now=False)
-        ht.viz.render.renderWindRose(day, nsector=4, now=True)        
-        # new_day = aug.augment(day)
-        # viewer.show(new_day)
+    # aug = ht.augment.Augmentor()
+    # viewer = ht.viz.dayviewer.DayViewer()
+    # for day in ht.rawdata.getAllDays():
+    #     viewer.show(day)
+    #     # viewer = ht.viz.dayviewer.DayViewer(day)
+    #     # viewer.show(day)
+    #     # ht.viz.render.renderWindRose(day, now=False)
+    #     # ht.viz.render.renderWindRose(day, nsector=4, now=True)
+    #     new_day = aug.augment(day)
+    #     viewer.show(new_day)
 
 
 # import numpy as np

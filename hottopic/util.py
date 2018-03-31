@@ -94,7 +94,7 @@ def availableDates(burnName):
     # we can only use days which have perimeter and weather data on the following day
     for d in perimDates:
         a, b = possibleNextDates(d)
-        if (a in perimDates and d in weatherDates) or (b in perimDates and d in weatherDates):
+        if d in weatherDates and (a in perimDates or b in perimDates):
             yield d
 
 def availableBurnsAndDates():
