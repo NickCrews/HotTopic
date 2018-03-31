@@ -188,9 +188,20 @@ def renderWindRose(day, nsector=16, now=True):
     # ax.contour(wdir, wspeed, bins=bins, cmap=cm.hot)
     ax.set_legend()
     if now:
-        plt.show()
+        plt.show(block=False)
     return ax
 
+def showWindData(day):
+    window_name = "{} - {} - Wind Data".format(day.burn.name, day.date)
+    fig=plt.figure(window_name)
+    ax = fig.add_subplot(111, projection='polar')
+    temp, dewpt, temp2, wdir, wspeed, precip, hum = day.weather
+    theta = wdir*np.pi/180
+    colors = theta
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+    ax.scatter(theta, wspeed, c=colors, cmap='hsv', alpha=.75)
+    plt.show(block=False)
 
 def renderPerformance(model, samples):
     expCanvas = np.empty_like(samples[0].day.layers['starting_perim'], dtype=np.float32)
