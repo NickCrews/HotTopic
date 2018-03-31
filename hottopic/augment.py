@@ -54,6 +54,9 @@ def transform_matrix_offset_center(matrix, x, y):
     return transform_matrix
 
 def flip_axis(x, axis):
+    #axis = 0 means that we don't change the axes,
+    #which means we iterate through the rows backwards
+    #which means flipping vertically, along a horizontal axis
     x = np.asarray(x).swapaxes(axis, 0)
     x = x[::-1, ...]
     x = x.swapaxes(0, axis)
@@ -64,7 +67,7 @@ class Augmentor(object):
     def __init__(self,
                 rotation_range=180.,
                 # shear_range=0.,
-                zoom_range=.05,
+                zoom_range=.5,
                 # fill_mode='nearest',
                 # cval=0.,
                 horizontal_flip=True,
@@ -142,6 +145,7 @@ class Augmentor(object):
 
         transform_matrix = None
         if theta != 0:
+            theta = theta * np.pi/180
             rotation_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
                                         [np.sin(theta), np.cos(theta), 0],
                                         [0, 0, 1]])
@@ -163,14 +167,14 @@ class Augmentor(object):
             h, w = img.shape[:2]
             # make the transform happena round the center of the image, not the UL corner
             transform_matrix = transform_matrix_offset_center(transform_matrix, h, w)
-            img = apply_transform(img,transform_matrix, fill_mode='constant', cval=0.0)
+            img = apply_transform(img,transform_matrix, fill_mode='constant', cval=np.nan)
 
         if flip_hor:
-            # 1 is axis for columns
+            # LR is reversed
             img = flip_axis(img,1)
 
         if flip_ver:
-            # 0 is axis for rows
+            # up down are reversed
             img = flip_axis(img,0)
 
         return img
@@ -179,4 +183,23 @@ class Augmentor(object):
         temp, dewpt, temp2, wdir, wspeed, precip, hum = weather
         theta, zx, zy, flip_hor, flip_ver = params
 
+        # Theta is measured CCW, but our wind directions are CW
+        wdir = (wdir-theta) % 360
+
+        # fix the zooming. turn polar wind into NS and EW components, scale, then convert back to polar
+        # careful, our axes are pointing north, and CW is positiv direction not CCW
+        in_radians = wdir*np.pi/180
+        NS = wspeed * np.cos(in_radians) #0-> max, pi/2->0
+        EW = wspeed * np.sin(in_radians) #0-> 0, pi/2->max
+        NS *= zy
+        EW *= zx
+        wspeed = np.sqrt(NS**2 + EW**2)
+        wdir = (np.arctan2(EW, NS)*180/np.pi) % 360
+
+        if flip_hor:
+            wdir = (-wdir) % 360
+        if flip_ver:
+            wdir = (180-wdir) % 360
+
+        weather = temp, dewpt, temp2, wdir, wspeed, precip, hum
         return weather
