@@ -121,7 +121,7 @@ class Augmentor(object):
 
     def generate_parameters(self):
         if self.rotation_range:
-            theta = np.deg2rad(np.random.uniform(-self.rotation_range, self.rotation_range))
+            theta = np.random.uniform(-self.rotation_range, self.rotation_range)
         else:
             theta = 0
 
@@ -145,9 +145,9 @@ class Augmentor(object):
 
         transform_matrix = None
         if theta != 0:
-            theta = theta * np.pi/180
-            rotation_matrix = np.array([[np.cos(theta), -np.sin(theta), 0],
-                                        [np.sin(theta), np.cos(theta), 0],
+            rad = theta * np.pi/180
+            rotation_matrix = np.array([[np.cos(rad), -np.sin(rad), 0],
+                                        [np.sin(rad), np.cos(rad), 0],
                                         [0, 0, 1]])
             transform_matrix = rotation_matrix
 
