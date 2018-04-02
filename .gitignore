@@ -15,7 +15,5 @@ datasets/*
 !datasets/.placeholder
 processed/*
 !processed/.placeholder
-preprocessors/*
-!preprocessors/.placeholder
 
 main_out.out
