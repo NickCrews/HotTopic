@@ -44,7 +44,8 @@ def getInputs(day, spec=ht.sample.SampleSpec):
 
 def getOutput(day):
     smaller = cv2.resize(day.layers['ending_perim'], None, fx=SCALE_FACTOR, fy=SCALE_FACTOR)
-    # make this explicityl one channel
+    np.nan_to_num(smaller, copy=False)
+    # make this explicitly one channel
     return np.expand_dims(smaller, axis=2)
 
 def trainAndTestSets():
@@ -57,6 +58,68 @@ def trainAndTestSets():
         else:
             train.append(ht.rawdata.getDay(b,d))
     return train, test
+
+def make_generator(preprocessor, days, augmentor=None):
+    def generator():
+        while True:
+            for day in days:
+                if augmentor:
+                    day = augmentor.augment(day)
+                normed = preprocessor.process(day)
+                print(normed)
+                inp = np.expand_dims(getInputs(normed), axis=0)
+                out = np.expand_dims(getOutput(normed), axis=0)
+                assert np.isnan(inp).any() == False
+                assert np.isnan(out).any() == False
+                yield inp, out
+    return generator
+
+def make_multiprocess_generator(preprocessor, days, augmentor=None):
+    gen = make_generator(preprocessor, days, augmentor)
+
+
+def trainingDataset():
+    allBurnNames = list(ht.util.availableBurnNames())
+    #peekaboo, ecklund, redDirt2, redDirt, beaverCreek, riceRidge, junkins, gutzler, coldSprings, pineTree, haydenPass
+    testingBurnNames = ['coldSprings', 'riceRidge']
+    trainingBurnNames = [b for b in allBurnNames if b not in testingBurnNames]
+    trainingDays = []
+    for bn in trainingBurnNames:
+        trainingDays.extend(ht.rawdata.getAllDays(bn))
+    return trainingDays
+
+def trainWithAugment():
+    train = trainingDataset()
+    pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
+    aug = ht.augment.Augmentor()
+    gen = make_generator(pre, train, aug)
+
+    m = make_model(ht.sample.SampleSpec.numLayers)
+    m.fit_generator(gen(), steps_per_epoch=8, epochs=256)
+    m.save('models/convWithAugmented2.h5')
+
+def testOnTrainedAugmented():
+    train = trainingDataset()
+    pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
+    normed = pre.process(train)
+    m = keras.models.load_model('models/convWithAugmented.h5')
+    for day in normed:
+        inp, expected = np.expand_dims(getInputs(day),axis=0), np.expand_dims(getOutput(day), axis=0)
+        assert np.isnan(inp).any() == False
+        assert np.isnan(expected).any() == False
+        out = m.predict(inp)
+        assert np.isnan(out).any() == False
+        # inp = np.squeeze(inp)
+        out = np.squeeze(out)
+        # cv2 uses (w,h) and numpy uses (h,w) WTF
+        h,w = day.layers['starting_perim'].shape
+        out = cv2.resize(out, (w,h))
+        canvas = ht.viz.render.renderCanvas(day)
+        viz = ht.viz.render.overlayPredictions(canvas, out)
+        cv2.imshow(day.burn.name+day.date, viz)
+        if cv2.waitKey(0) == ord('q'):
+            break
+        cv2.destroyWindow(day.burn.name+day.date)
 
 def train(epochs=10):
     m = make_model(ht.sample.SampleSpec.numLayers)
