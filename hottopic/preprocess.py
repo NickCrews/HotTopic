@@ -84,6 +84,12 @@ class PreProcessor(object):
     def process(self, days, spec=ht.sample.SampleSpec):
         if len(self.fits) == 0:
             raise ValueError('Must fit() before!')
+        if type(days) == ht.rawdata.Day:
+            # we mussed have gotten an individual day
+            days = [days]
+            non_list = True
+        else:
+            non_list = False
         burns = {}
         results = []
         for day in days:
@@ -92,8 +98,7 @@ class PreProcessor(object):
                 newBurn = burns[day.burn]
             else:
                 newLayers = self._applyFitToLayers(day.layers, spec)
-                oldBurnName = day.burn.name
-                newBurnName = oldBurnName + '_processed_' + strftime("%d%b%H_%M", localtime())
+                newBurnName = day.burn.name + '_processed_' + strftime("%d%b%H_%M", localtime())
                 newBurn = ht.rawdata.Burn(newBurnName, newLayers)
                 burns[day.burn] = newBurn
             # make the new Day and add it to burn
@@ -101,7 +106,10 @@ class PreProcessor(object):
             newDay = ht.rawdata.Day(newBurn, day.date, newWeather, day.layers['starting_perim'], day.layers['ending_perim'])
             newBurn.days[day.date] = newDay
             results.append(newDay)
-        return results
+        if non_list:
+            return results[0]
+        else:
+            return results
 
     def _applyFitToLayers(self, layers, spec):
         if len(self.fits) == 0:
@@ -110,7 +118,7 @@ class PreProcessor(object):
         for name in spec.layers:
             lay = layers[name]
             if name =='starting_perim':
-                newLayers[name] = lay
+                continue
             elif name != 'dem':
                 mean = self.fits[name+'_mean']
                 std = self.fits[name+'_std']
@@ -121,6 +129,7 @@ class PreProcessor(object):
                 std = self.fits['dem_std_range']
                 newDem = (lay-np.nanmean(lay)) / std
                 newLayers[name] = newDem
+        # contains all the layers
         return newLayers
 
     def _applyFitToWeather(self, weather):
