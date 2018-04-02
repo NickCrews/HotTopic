@@ -92,24 +92,10 @@ def test():
     ht.viz.render.show(*peekabooRenders)
 
 if __name__ == '__main__':
-    # for b in ht.util.availableBurnNames():
-    #     print(b)
-    # test()
-    # trainOnOne()
-    # testOne()
-    fitPreprocessor()
-    # usePreprocessor()
-    # samples()
-    # useGui()
-    # predict()
-    # for pair in ht.util.availableBurnsAndDates():
-    #     print(pair)
-    #     day = ht.rawdata.getDay(*pair)
-    #     for layerName in day.layers:
-    #         print(layerName, day.layers[layerName])
-    #     print(day.layers['starting_perim'].shape)
+    # fitPreprocessor()
     # ht.conv.test()
-    # ht.conv.train()
+    # ht.conv.trainWithAugment()
+    ht.conv.testOnTrainedAugmented()
     # aug = ht.augment.Augmentor()
     # viewer = ht.viz.dayviewer.DayViewer()
     # for day in ht.rawdata.getAllDays():

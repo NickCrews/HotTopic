@@ -102,12 +102,12 @@ class Augmentor(object):
 
         # apply the transforms
         params = self.generate_parameters()
-        print('augmenting {} with'.format(day.burn.name+burn.date), params)
+        print('augmenting {} with'.format(day.burn.name+day.date), params)
         new_img = self.transform_layers(img, params)
         new_weather = self.transform_weather(day.weather, params)
 
         # make a new Burn object
-        burnName = day.burn.name + '_processed_' + strftime("%d%b%H_%M", localtime())
+        burnName = day.burn.name + '_augmented_' + strftime("%d%b%H_%M", localtime())
         burn_layers = {name: new_img[:,:,names.index(name)] for name in ht.rawdata.Burn.LAYERS}
         new_burn = ht.rawdata.Burn(burnName, burn_layers)
         #make a new day object
@@ -118,6 +118,11 @@ class Augmentor(object):
         new_burn.days[new_day.date] = new_day
 
         return new_day
+
+    def flow(self, days):
+        while True:
+            for d in days:
+                yield self.augment(d)
 
     def generate_parameters(self):
         if self.rotation_range:
