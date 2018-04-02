@@ -27,6 +27,21 @@ def make_model(nchannels):
     m.summary()
     return m
 
+# def make_model_with_weather(nchannels):
+#     kernel_size=(5,5)
+#     # one smaple at a time, dont know the H and W, one channel
+#     inp_shape = (None,None,nchannels)
+#
+#     m = Sequential()
+#     m.add(Conv2D(4, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, input_shape=inp_shape))
+#     m.add(Conv2D(8, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+#     m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+#     # m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='sigmoid', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+#
+#     m.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
+#     m.summary()
+#     return m
+
 def getInputs(day, spec=ht.sample.SampleSpec):
     layers = [day.layers[name] for name in spec.layers]
     stacked = np.dstack(layers)
@@ -77,32 +92,22 @@ def make_generator(preprocessor, days, augmentor=None):
 def make_multiprocess_generator(preprocessor, days, augmentor=None):
     gen = make_generator(preprocessor, days, augmentor)
 
+def trainWithoutAugment(days):
+    pre = ht.preprocess.PreProcessor.fromFile('fitWithoutAugmented.json')
+    gen = make_generator(pre, days, augmentor=None)
+    train(gen, 'models/convWithoutAugmented.h5')
 
-def trainingDataset():
-    allBurnNames = list(ht.util.availableBurnNames())
-    #peekaboo, ecklund, redDirt2, redDirt, beaverCreek, riceRidge, junkins, gutzler, coldSprings, pineTree, haydenPass
-    testingBurnNames = ['coldSprings', 'riceRidge']
-    trainingBurnNames = [b for b in allBurnNames if b not in testingBurnNames]
-    trainingDays = []
-    for bn in trainingBurnNames:
-        trainingDays.extend(ht.rawdata.getAllDays(bn))
-    return trainingDays
-
-def trainWithAugment():
-    train = trainingDataset()
+def trainWithAugment(days):
     pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
     aug = ht.augment.Augmentor()
-    gen = make_generator(pre, train, aug)
+    gen = make_generator(pre, days, aug)
+    train(gen, 'models/convWithAugmented.h5')
 
-    m = make_model(ht.sample.SampleSpec.numLayers)
-    m.fit_generator(gen(), steps_per_epoch=8, epochs=256)
-    m.save('models/convWithAugmented2.h5')
-
-def testOnTrainedAugmented():
-    train = trainingDataset()
+def testOn(days):
     pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
-    normed = pre.process(train)
-    m = keras.models.load_model('models/convWithAugmented.h5')
+    normed = pre.process(days)
+    # m = keras.models.load_model('models/convWithAugmentedBig.h5')
+    m = keras.models.load_model('models/secondConv.h5')
     for day in normed:
         inp, expected = np.expand_dims(getInputs(day),axis=0), np.expand_dims(getOutput(day), axis=0)
         assert np.isnan(inp).any() == False
@@ -121,22 +126,18 @@ def testOnTrainedAugmented():
             break
         cv2.destroyWindow(day.burn.name+day.date)
 
-def train(epochs=10):
+def testOnTrainedAugmented():
+    train = trainingDataset()
+    testOn(train)
+
+def testOnAll():
+    allDays = ht.rawdata.getAllDays()
+    testOn(allDays)
+
+def train(generator, model_name):
     m = make_model(ht.sample.SampleSpec.numLayers)
-    train = ht.rawdata.chooseDays()
-    pre = ht.preprocess.PreProcessor()
-    pre.fit(train)
-    pre.save('secondConvFit')
-    normed = pre.process(train)
-    for e in range(epochs):
-        for day in normed:
-            print(e)
-            inp, out = np.expand_dims(getInputs(day),axis=0), np.expand_dims(getOutput(day), axis=0)
-            assert np.isnan(inp).any() == False
-            assert np.isnan(out).any() == False
-            # print(inp.shape, out.shape)
-            m.fit(inp, out)
-    m.save('models/secondConv.h5')
+    m.fit_generator(generator(), steps_per_epoch=16, epochs=256)
+    m.save(model_name)
 
 def test():
     m = keras.models.load_model('models/secondConv.h5')

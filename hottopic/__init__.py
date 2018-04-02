@@ -11,9 +11,10 @@ from . import conv
 
 try:
     import matplotlib
+    from matplotlib import pyplot as plt
 except Exception as e:
     print('Not going to import the visualization modules: {}'.format(e))
-if 'matplotlib' in globals():
+else:
     from . import viz
     from .viz import windrose
     from .viz import render

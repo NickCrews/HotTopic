@@ -1,0 +1,8 @@
+notes:
+
+4/2:
+started a run on mcscn at 11:30 on augmented data, called convWithAugmentedBig.h5
+8 per epoch, 128 epochs
+
+started a run on mcscn at noon on augmented data, called convWithAugmentedBigger.h5
+16 per epoch, 256 epochs

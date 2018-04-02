@@ -12,13 +12,7 @@ def predict():
     m.predictDay(oneDay)
 
 def fitPreprocessorWithAugmented():
-    allBurnNames = list(ht.util.availableBurnNames())
-    #peekaboo, ecklund, redDirt2, redDirt, beaverCreek, riceRidge, junkins, gutzler, coldSprings, pineTree, haydenPass
-    testingBurnNames = ['coldSprings', 'riceRidge']
-    trainingBurnNames = [b for b in allBurnNames if b not in testingBurnNames]
-    trainingDays = []
-    for bn in trainingBurnNames:
-        trainingDays.extend(ht.rawdata.getAllDays(bn))
+    trainingDays = trainingDataset()
 
     aug = ht.augment.Augmentor()
     augmented = trainingDays.copy()
@@ -28,6 +22,23 @@ def fitPreprocessorWithAugmented():
     p = ht.preprocess.PreProcessor()
     p.fit(augmented)
     p.save('fitWithAugmented.json')
+
+def fitPreprocessorWithoutAugmented():
+    trainingDays = trainingDataset()
+
+    p = ht.preprocess.PreProcessor()
+    p.fit(trainingDays)
+    p.save('fitWithoutAugmented.json')
+
+def trainingDataset():
+    allBurnNames = list(ht.util.availableBurnNames())
+    #peekaboo, ecklund, redDirt2, redDirt, beaverCreek, riceRidge, junkins, gutzler, coldSprings, pineTree, haydenPass
+    testingBurnNames = ['coldSprings', 'riceRidge']
+    trainingBurnNames = [b for b in allBurnNames if b not in testingBurnNames]
+    trainingDays = []
+    for bn in trainingBurnNames:
+        trainingDays.extend(ht.rawdata.getAllDays(bn))
+    return trainingDays
 
 
 def example():
@@ -92,10 +103,13 @@ def test():
     ht.viz.render.show(*peekabooRenders)
 
 if __name__ == '__main__':
-    # fitPreprocessor()
+    # fitPreprocessorWithoutAugmented()
+    # trainingDays =
+    ht.conv.trainWithoutAugment(trainingDataset())
     # ht.conv.test()
     # ht.conv.trainWithAugment()
-    ht.conv.testOnTrainedAugmented()
+    # ht.conv.testOnTrainedAugmented()
+    # ht.conv.testOnAll()
     # aug = ht.augment.Augmentor()
     # viewer = ht.viz.dayviewer.DayViewer()
     # for day in ht.rawdata.getAllDays():
