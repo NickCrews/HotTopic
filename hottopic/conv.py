@@ -12,10 +12,10 @@ import hottopic as ht
 
 SCALE_FACTOR = .25
 
-def make_model(nchannels):
+def make_model(sample_spec):
     kernel_size=(5,5)
     # one smaple at a time, dont know the H and W, one channel
-    inp_shape = (None,None,nchannels)
+    inp_shape = (None,None,sample_spec.numLayers)
 
     m = Sequential()
     m.add(Conv2D(4, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, input_shape=inp_shape))
@@ -27,20 +27,61 @@ def make_model(nchannels):
     m.summary()
     return m
 
-# def make_model_with_weather(nchannels):
-#     kernel_size=(5,5)
-#     # one smaple at a time, dont know the H and W, one channel
-#     inp_shape = (None,None,nchannels)
-#
-#     m = Sequential()
-#     m.add(Conv2D(4, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, input_shape=inp_shape))
-#     m.add(Conv2D(8, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
-#     m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
-#     # m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='sigmoid', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
-#
-#     m.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
-#     m.summary()
-#     return m
+def make_model_with_weather(sample_spec):
+    kernel_size=(5,5)
+    # one smaple at a time, dont know the H and W, one channel
+    nchannels = sample_spec.numLayers + sample_spec.numNonLayers
+    inp_shape = (None,None,nchannels)
+
+    m = Sequential()
+    m.add(Conv2D(16, (1,1), strides=(1,1), padding='same', data_format='channels_last', dilation_rate=1, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None, input_shape=inp_shape))
+
+    m.add(Conv2D(16, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+
+    m.add(Conv2D(16, (1,1), strides=(1,1), padding='same', data_format='channels_last', dilation_rate=1, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+
+    m.add(Conv2D(32, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+
+    m.add(Conv2D(32, (1,1), strides=(1,1), padding='same', data_format='channels_last', dilation_rate=1, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+
+    m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+    # m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='sigmoid', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
+
+    m.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
+    m.summary()
+    return m
+
+def getWeatherInputs(day):
+    rw = day.weather #rawWeather
+    precip = ht.util.totalPrecipitation(rw)
+    temp = ht.util.maximumTemperature1(rw)
+    temp2 = ht.util.maximumTemperature2(rw)
+    hum = ht.util.averageHumidity(rw)
+    winds = ht.util.windMetrics(rw)
+    allMetrics = [precip, temp, temp2, hum] + winds
+    return np.asarray(allMetrics)
+
+def getInputsWithWeather(day, spec=ht.sample.SampleSpec):
+    layers = [day.layers[name] for name in spec.layers]
+    stacked = np.dstack(layers)
+
+    metrics = getWeatherInputs(day)
+    h,w = layers[0].shape
+    tiled_metrics = np.tile(metrics, [h,w,1])
+
+    all_stacked = np.dstack((stacked, tiled_metrics))
+
+    np.nan_to_num(all_stacked, copy=False)
+    # for i in range(spec.numLayers):
+    #     layer = stacked[:,:,i]
+    #     print(spec.layers[i],layer.dtype, layer.shape, layer.min(), layer.max(), layer.mean(), layer.std())
+    #     if layer.dtype == np.uint8:
+    #         cv2.imshow('perim', layer*255)
+    #     else:
+    #         cv2.imshow(spec.layers[i],layer)
+    #     cv2.waitKey(0)
+    # print(stacked.shape)
+    return cv2.resize(all_stacked, None, fx=SCALE_FACTOR, fy=SCALE_FACTOR)
 
 def getInputs(day, spec=ht.sample.SampleSpec):
     layers = [day.layers[name] for name in spec.layers]
@@ -74,18 +115,20 @@ def trainAndTestSets():
             train.append(ht.rawdata.getDay(b,d))
     return train, test
 
-def make_generator(preprocessor, days, augmentor=None):
+def make_generator(preprocessor, days, augmentor=None, use_weather=False):
     def generator():
         while True:
             for day in days:
                 if augmentor:
                     day = augmentor.augment(day)
                 normed = preprocessor.process(day)
-                print(normed)
-                inp = np.expand_dims(getInputs(normed), axis=0)
+                if use_weather:
+                    inp = np.expand_dims(getInputsWithWeather(normed), axis=0)
+                else:
+                    inp = np.expand_dims(getInputs(normed), axis=0)
                 out = np.expand_dims(getOutput(normed), axis=0)
-                assert np.isnan(inp).any() == False
-                assert np.isnan(out).any() == False
+                # assert np.isnan(inp).any() == False
+                # assert np.isnan(out).any() == False
                 yield inp, out
     return generator
 
@@ -102,6 +145,12 @@ def trainWithAugment(days):
     aug = ht.augment.Augmentor()
     gen = make_generator(pre, days, aug)
     train(gen, 'models/convWithAugmented.h5')
+
+def trainWithAugmentAndWeather(days):
+    pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
+    aug = ht.augment.Augmentor()
+    gen = make_generator(pre, days, aug, use_weather=True)
+    trainWithWeather(gen, 'models/convWithAugmentedAndWeather.h5')
 
 def testOn(days):
     pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
@@ -135,7 +184,12 @@ def testOnAll():
     testOn(allDays)
 
 def train(generator, model_name):
-    m = make_model(ht.sample.SampleSpec.numLayers)
+    m = make_model(ht.sample.SampleSpec)
+    m.fit_generator(generator(), steps_per_epoch=16, epochs=256)
+    m.save(model_name)
+
+def trainWithWeather(generator, model_name):
+    m = make_model_with_weather(ht.sample.SampleSpec)
     m.fit_generator(generator(), steps_per_epoch=16, epochs=256)
     m.save(model_name)
 
