@@ -3,6 +3,7 @@
 Much of this is taken from https://github.com/keras-team/keras/blob/master/keras/preprocessing/image.py'''
 
 from time import localtime, strftime
+from math import ceil
 
 import numpy as np
 import cv2
@@ -67,7 +68,7 @@ class Augmentor(object):
     def __init__(self,
                 rotation_range=180.,
                 # shear_range=0.,
-                zoom_range=.5,
+                zoom_range=.1,
                 # fill_mode='nearest',
                 # cval=0.,
                 horizontal_flip=True,
@@ -102,9 +103,24 @@ class Augmentor(object):
 
         # apply the transforms
         params = self.generate_parameters()
+        theta, zx, zy, flip_hor, flip_ver = params
         print('augmenting {} with'.format(day.burn.name+day.date), params)
-        new_img = self.transform_layers(img, params)
+
+        # if there is something in the corner of the image, it will be cut off with a rotation
+        h,w = img.shape[:2]
+        rh, rw = h/2, w/2
+        center2corner = ( rh**2 + rw**2 )**.5 #distance from center to corner
+        r = max(center2corner-rh, center2corner-rw) #needed padding
+        r *= max(zx,zy)
+        r = int(ceil(r))
+        padded = np.lib.pad(img, ((r,r),(r,r),(0,0)), 'constant')
+        new_img = self.transform_layers(padded, params)
         new_weather = self.transform_weather(day.weather, params)
+
+        # cv2.imshow('padded',padded[:,:,0])
+        # cv2.imshow('img',img[:,:,0])
+        # cv2.imshow('newimg',new_img[:,:,0])
+        # cv2.waitKey(0)
 
         # make a new Burn object
         burnName = day.burn.name + '_augmented_' + strftime("%d%b%H_%M", localtime())
@@ -115,6 +131,7 @@ class Augmentor(object):
         ending_perim = new_img[:,:, names.index('ending_perim')]
         new_day = ht.rawdata.Day(new_burn, day.date, new_weather, starting_perim, ending_perim)
 
+        # make the Burn object remember the Day object
         new_burn.days[new_day.date] = new_day
 
         return new_day
