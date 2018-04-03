@@ -59,6 +59,11 @@ class PreProcessor(object):
         keys = ['total_precip', 'mean_hum', 'max_temp1', 'max_temp2', 'wind_speeds']
         metrics = [totPrecips, avgHums, maxTemp1s, maxTemp2s, windSpeeds]
         for key, metric in zip(keys, metrics):
+            print(key)
+            print(metric)
+            print(np.min(metric), np.max(metric), np.mean(metric), np.std(metric), np.nanmean(metric), np.nanstd(metric))
+
+            assert np.isnan(metric).any() == False
             self.fits[key+'_mean'] = np.mean(metric)
             self.fits[key+'_std']  = np.std(metric)
         print('fitting to weather data...done')

@@ -2,6 +2,8 @@
 import time
 import hottopic as ht
 
+import cv2
+
 def useGui():
     ht.gui.makeApp()
 
@@ -16,12 +18,12 @@ def fitPreprocessorWithAugmented():
 
     aug = ht.augment.Augmentor()
     augmented = trainingDays.copy()
-    for _ in range(10):
+    for _ in range(1):
         augmented.extend(aug.augment(d) for d in trainingDays)
 
     p = ht.preprocess.PreProcessor()
     p.fit(augmented)
-    p.save('fitWithAugmented.json')
+    # p.save('fitWithAugmented.json')
 
 def fitPreprocessorWithoutAugmented():
     trainingDays = trainingDataset()
@@ -102,10 +104,25 @@ def test():
     peekabooRenders = ht.viz.render.renderPerformance(m, peekabooSamples)
     ht.viz.render.show(*peekabooRenders)
 
+def checkForAugmentingAndNorming():
+    days = ht.rawdata.getAllDays()
+    aug = ht.augment.Augmentor()
+    viewer = ht.viz.dayviewer.DayViewer()
+    pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
+    for day in days:
+        a = aug.augment(day)
+        normed = pre.process(a)
+        # viewer.show(a)
+        # cv2.imshow("raw", day.layers["dem"])
+        # cv2.imshow("augmented", a.layers["dem"])
+        # cv2.imshow("normed", normed.layers["dem"])
+        cv2.waitKey(0)
+
 if __name__ == '__main__':
-    # fitPreprocessorWithoutAugmented()
-    # trainingDays =
-    ht.conv.trainWithoutAugment(trainingDataset())
+    fitPreprocessorWithAugmented()
+    # checkForAugmentingAndNorming()
+    # ht.conv.trainWithoutAugment(trainingDataset())
+    # ht.conv.trainWithAugmentAndWeather(days)
     # ht.conv.test()
     # ht.conv.trainWithAugment()
     # ht.conv.testOnTrainedAugmented()
