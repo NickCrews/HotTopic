@@ -84,6 +84,7 @@ class Burn(object):
 class Day(object):
 
     LAYERS = ['starting_perim', 'ending_perim']
+    WEATHER_VARS = ['temp', 'dewpt', 'temp2', 'wdir', 'wspeed', 'precip', 'humidity']
 
     def __init__(self, burn, date, weather, starting_perim, ending_perim):
         self.burn = burn
