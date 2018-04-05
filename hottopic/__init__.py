@@ -6,6 +6,7 @@ from . import rawdata
 from . import augment
 from . import sample
 from . import preprocess
+from . import normalizer
 from . import model
 from . import conv
 

@@ -51,92 +51,35 @@ def make_model_with_weather(sample_spec):
     m.summary()
     return m
 
-def getWeatherInputs(day):
-    rw = day.weather #rawWeather
-    precip = ht.util.totalPrecipitation(rw)
-    temp = ht.util.maximumTemperature1(rw)
-    temp2 = ht.util.maximumTemperature2(rw)
-    hum = ht.util.averageHumidity(rw)
-    winds = ht.util.windMetrics(rw)
-    allMetrics = [precip, temp, temp2, hum] + winds
-    return np.asarray(allMetrics)
-
-def getInputsWithWeather(day, preprocessor, spec=ht.sample.SampleSpec):
-    layers = [day.layers[name] for name in spec.layers]
-    stacked = np.dstack(layers)
-
-    metrics = preprocessor.getWeatherInputs(day.weather)
-    h,w = layers[0].shape
-    tiled_metrics = np.tile(metrics, [h,w,1])
-
-
-    all_stacked = np.dstack((stacked, tiled_metrics))
-
-    np.nan_to_num(all_stacked, copy=False)
-    # for i in range(spec.numLayers):
-    #     layer = stacked[:,:,i]
-    #     print(spec.layers[i],layer.dtype, layer.shape, layer.min(), layer.max(), layer.mean(), layer.std())
-    #     if layer.dtype == np.uint8:
-    #         cv2.imshow('perim', layer*255)
-    #     else:
-    #         cv2.imshow(spec.layers[i],layer)
-    #     cv2.waitKey(0)
-    # print(stacked.shape)
-    return cv2.resize(all_stacked, None, fx=SCALE_FACTOR, fy=SCALE_FACTOR)
-
-def getInputs(day, spec=ht.sample.SampleSpec):
-    layers = [day.layers[name] for name in spec.layers]
-    stacked = np.dstack(layers)
-    np.nan_to_num(stacked, copy=False)
-    # for i in range(spec.numLayers):
-    #     layer = stacked[:,:,i]
-    #     print(spec.layers[i],layer.dtype, layer.shape, layer.min(), layer.max(), layer.mean(), layer.std())
-    #     if layer.dtype == np.uint8:
-    #         cv2.imshow('perim', layer*255)
-    #     else:
-    #         cv2.imshow(spec.layers[i],layer)
-    #     cv2.waitKey(0)
-    # print(stacked.shape)
-    return cv2.resize(stacked, None, fx=SCALE_FACTOR, fy=SCALE_FACTOR)
-
-def getOutput(day):
-    smaller = cv2.resize(day.layers['ending_perim'], None, fx=SCALE_FACTOR, fy=SCALE_FACTOR)
-    np.nan_to_num(smaller, copy=False)
-    # make this explicitly one channel
-    return np.expand_dims(smaller, axis=2)
-
-def trainAndTestSets():
-    testing = ['peekaboo', 'pineTree']
-    train = []
-    test = []
-    for (b,d) in ht.util.availableBurnsAndDates():
-        if b in testing:
-            test.append(ht.rawdata.getDay(b,d))
-        else:
-            train.append(ht.rawdata.getDay(b,d))
-    return train, test
-
-def make_generator(preprocessor, days, augmentor=None, use_weather=False):
+def make_generator(days, normalizer, augmentor=None, use_weather=False):
+    pp = ht.preprocess.PreProcessor
     def generator():
         while True:
             for day in days:
                 if augmentor:
                     day = augmentor.augment(day)
-                normed = preprocessor.process(day)
-                if use_weather:
-                    inp = np.expand_dims(getInputsWithWeather(normed, preprocessor), axis=0)
-                else:
-                    inp = np.expand_dims(getInputs(normed), axis=0)
-                out = np.expand_dims(getOutput(normed), axis=0)
+                inp = np.expand_dims(pp.getInput(day, use_weather), axis=0)
+                out = np.expand_dims(pp.getOutput(day), axis=0)
                 # for i in range(inp.shape[-1]):
                 #     print(i, inp[:,:,i].mean())
                 # assert np.isnan(inp).any() == False
                 # assert np.isnan(out).any() == False
-                yield inp, out
+                normed = normalizer.normalize(inp)
+                yield normed, out
     return generator
 
-def make_multiprocess_generator(preprocessor, days, augmentor=None):
-    gen = make_generator(preprocessor, days, augmentor)
+def fitPreprocessorWithAugmentedAndWeather(days):
+    days = days[:3]
+    aug = ht.augment.Augmentor()
+    augmented = []
+    for _ in range(1):
+        augmented.extend(aug.augment(d) for d in days)
+
+    inputs = [ht.preprocess.PreProcessor.getInput(aug) for aug in augmented]
+
+    normer = ht.normalizer.Normalizer()
+    normer.fit(inputs)
+    normer.save('normerApril4.json')
 
 def trainWithoutAugment(days):
     pre = ht.preprocess.PreProcessor.fromFile('fitWithoutAugmented.json')

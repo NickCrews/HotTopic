@@ -123,13 +123,14 @@ def checkForAugmentingAndNorming():
         # cv2.waitKey(0)
 
 if __name__ == '__main__':
+    ht.conv.fitPreprocessorWithAugmentedAndWeather(trainingDataset())
     # fitPreprocessorWithAugmented()
     # checkForAugmentingAndNorming()
     # ht.conv.trainWithoutAugment()
     # ht.conv.trainWithAugmentAndWeather(trainingDataset())
     # ht.conv.test()
     # ht.conv.trainWithAugment()
-    ht.conv.testOnTrainedAugmentedAndWeather(trainingDataset())
+    # ht.conv.testOnTrainedAugmentedAndWeather(trainingDataset())
     # ht.conv.testOnAll()
     # aug = ht.augment.Augmentor()
     # viewer = ht.viz.dayviewer.DayViewer()
