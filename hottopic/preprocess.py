@@ -7,10 +7,31 @@ import hottopic as ht
 
 class PreProcessor(object):
 
+    WEATHER_VARS = ['total_precip', 'mean_hum', 'max_temp1', 'max_temp2', 'wind_speeds']
+
     def __init__(self, fits=None):
         if fits is None:
             fits = {}
         self.fits = fits
+
+    def getWeatherInputs(self, weather):
+
+        # calculate the weather metrics
+        totPrecips = ht.util.totalPrecipitation(weather)
+        avgHums = ht.util.averageHumidity(weather)
+        maxTemp1s = ht.util.maximumTemperature1(weather)
+        maxTemp2s = ht.util.maximumTemperature2(weather)
+        windSpeeds = ht.util.windMetrics(weather)
+
+        # now normalize them
+        metrics = [totPrecips, avgHums, maxTemp1s, maxTemp2s] + windSpeeds
+        names = self.WEATHER_VARS + ['wind_speeds']*3
+        normed = []
+        for key, metric in zip(names, metrics):
+            mean, std = self.fits[key+'_mean'], self.fits[key+'_std']
+            normed.append((metric-mean)/std)
+
+        return normed
 
     def fit(self, days):
         '''Generate the parameters to preprocess this group of days'''
@@ -138,16 +159,17 @@ class PreProcessor(object):
         return newLayers
 
     def _applyFitToWeather(self, weather):
-        if len(self.fits) == 0:
-            raise ValueError('Must fit() before!')
-        temp, dewpt, temp2, wdir, wspeed, precip, hum = weather
-        newTemp1 = (temp - self.fits['max_temp1_mean']) / self.fits['max_temp1_std']
-        newTemp2 = (temp - self.fits['max_temp2_mean']) / self.fits['max_temp2_std']
-        newTemp1 = (temp - self.fits['max_temp1_mean']) / self.fits['max_temp1_std']
-        newWSpeed = (wspeed - self.fits['wind_speeds_mean']) / self.fits['wind_speeds_std']
-        newPrecip = (precip - self.fits['total_precip_mean']) / self.fits['total_precip_std']
-        newHum = (hum - self.fits['mean_hum_mean']) / self.fits['mean_hum_std']
-        return np.array([newTemp1, dewpt, newTemp2, wdir, newWSpeed, newPrecip, newHum])
+        return weather #we dont actually do anything to the raw weather data! That happens during pre-processing!
+        # if len(self.fits) == 0:
+        #     raise ValueError('Must fit() before!')
+        # temp, dewpt, temp2, wdir, wspeed, precip, hum = weather
+        # newTemp1 = (temp - self.fits['max_temp1_mean']) / self.fits['max_temp1_std']
+        # newTemp2 = (temp - self.fits['max_temp2_mean']) / self.fits['max_temp2_std']
+        # newTemp1 = (temp - self.fits['max_temp1_mean']) / self.fits['max_temp1_std']
+        # newWSpeed = (wspeed - self.fits['wind_speeds_mean']) / self.fits['wind_speeds_std']
+        # newPrecip = (precip - self.fits['total_precip_mean']) / self.fits['total_precip_std']
+        # newHum = (hum - self.fits['mean_hum_mean']) / self.fits['mean_hum_std']
+        # return np.array([newTemp1, dewpt, newTemp2, wdir, newWSpeed, newPrecip, newHum])
 
     # def prepSpatialData(self, day):
     #     normed = self.normalizeLayers(day)
