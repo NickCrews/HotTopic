@@ -6,3 +6,7 @@ started a run on mcscn at 11:30 on augmented data, called convWithAugmentedBig.h
 
 started a run on mcscn at noon on augmented data, called convWithAugmentedBigger.h5
 16 per epoch, 256 epochs
+
+4/3:
+5pm
+made it so augmenting pads the starting layers so we don't crop useful stuff when rotating or scaling. now re-ran the preProcessor fit so that it fits on the new kind of augmented data, since it contains a lot more zeros now, so the mean and std dev are often different

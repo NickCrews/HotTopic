@@ -61,13 +61,14 @@ def getWeatherInputs(day):
     allMetrics = [precip, temp, temp2, hum] + winds
     return np.asarray(allMetrics)
 
-def getInputsWithWeather(day, spec=ht.sample.SampleSpec):
+def getInputsWithWeather(day, preprocessor, spec=ht.sample.SampleSpec):
     layers = [day.layers[name] for name in spec.layers]
     stacked = np.dstack(layers)
 
-    metrics = getWeatherInputs(day)
+    metrics = preprocessor.getWeatherInputs(day.weather)
     h,w = layers[0].shape
     tiled_metrics = np.tile(metrics, [h,w,1])
+
 
     all_stacked = np.dstack((stacked, tiled_metrics))
 
@@ -123,10 +124,12 @@ def make_generator(preprocessor, days, augmentor=None, use_weather=False):
                     day = augmentor.augment(day)
                 normed = preprocessor.process(day)
                 if use_weather:
-                    inp = np.expand_dims(getInputsWithWeather(normed), axis=0)
+                    inp = np.expand_dims(getInputsWithWeather(normed, preprocessor), axis=0)
                 else:
                     inp = np.expand_dims(getInputs(normed), axis=0)
                 out = np.expand_dims(getOutput(normed), axis=0)
+                # for i in range(inp.shape[-1]):
+                #     print(i, inp[:,:,i].mean())
                 # assert np.isnan(inp).any() == False
                 # assert np.isnan(out).any() == False
                 yield inp, out
@@ -175,6 +178,31 @@ def testOn(days):
             break
         cv2.destroyWindow(day.burn.name+day.date)
 
+def testOnTrainedAugmentedAndWeather(days):
+    pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmentedAfterFixZooming.json')
+    augmentor = ht.augment.Augmentor()
+    auged = [augmentor.augment(day) for day in days]
+    normed = pre.process(auged)
+    # m = keras.models.load_model('models/convWithAugmentedBig.h5')
+    m = keras.models.load_model('models/convWithAugmentedAndWeather.h5')
+    for day in normed:
+        inp, expected = np.expand_dims(getInputsWithWeather(day, pre),axis=0), np.expand_dims(getOutput(day), axis=0)
+        assert np.isnan(inp).any() == False
+        assert np.isnan(expected).any() == False
+        out = m.predict(inp)
+        assert np.isnan(out).any() == False
+        # inp = np.squeeze(inp)
+        out = np.squeeze(out)
+        # cv2 uses (w,h) and numpy uses (h,w) WTF
+        h,w = day.layers['starting_perim'].shape
+        out = cv2.resize(out, (w,h))
+        canvas = ht.viz.render.renderCanvas(day)
+        viz = ht.viz.render.overlayPredictions(canvas, out)
+        cv2.imshow(day.burn.name+day.date, viz)
+        if cv2.waitKey(0) == ord('q'):
+            break
+        cv2.destroyWindow(day.burn.name+day.date)
+
 def testOnTrainedAugmented():
     train = trainingDataset()
     testOn(train)
@@ -190,7 +218,7 @@ def train(generator, model_name):
 
 def trainWithWeather(generator, model_name):
     m = make_model_with_weather(ht.sample.SampleSpec)
-    m.fit_generator(generator(), steps_per_epoch=16, epochs=256)
+    m.fit_generator(generator(), steps_per_epoch=16, epochs=64)
     m.save(model_name)
 
 def test():

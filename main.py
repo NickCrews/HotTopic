@@ -3,6 +3,7 @@ import time
 import hottopic as ht
 
 import cv2
+import numpy as np
 
 def useGui():
     ht.gui.makeApp()
@@ -17,13 +18,13 @@ def fitPreprocessorWithAugmented():
     trainingDays = trainingDataset()
 
     aug = ht.augment.Augmentor()
-    augmented = trainingDays.copy()
-    for _ in range(1):
+    augmented = []
+    for _ in range(10):
         augmented.extend(aug.augment(d) for d in trainingDays)
 
     p = ht.preprocess.PreProcessor()
     p.fit(augmented)
-    # p.save('fitWithAugmented.json')
+    p.save('fitWithAugmentedAfterFixZooming.json')
 
 def fitPreprocessorWithoutAugmented():
     trainingDays = trainingDataset()
@@ -108,24 +109,27 @@ def checkForAugmentingAndNorming():
     days = ht.rawdata.getAllDays()
     aug = ht.augment.Augmentor()
     viewer = ht.viz.dayviewer.DayViewer()
-    pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmented.json')
+    pre = ht.preprocess.PreProcessor.fromFile('fitWithAugmentedAfterFixZooming.json')
     for day in days:
         a = aug.augment(day)
         normed = pre.process(a)
         # viewer.show(a)
+        # viewer.show(normed)
+        for name, layer in normed.layers.items():
+            print(name, np.nanmean(layer), np.nanstd(layer))
         # cv2.imshow("raw", day.layers["dem"])
         # cv2.imshow("augmented", a.layers["dem"])
         # cv2.imshow("normed", normed.layers["dem"])
-        cv2.waitKey(0)
+        # cv2.waitKey(0)
 
 if __name__ == '__main__':
-    fitPreprocessorWithAugmented()
+    # fitPreprocessorWithAugmented()
     # checkForAugmentingAndNorming()
-    # ht.conv.trainWithoutAugment(trainingDataset())
-    # ht.conv.trainWithAugmentAndWeather(days)
+    # ht.conv.trainWithoutAugment()
+    # ht.conv.trainWithAugmentAndWeather(trainingDataset())
     # ht.conv.test()
     # ht.conv.trainWithAugment()
-    # ht.conv.testOnTrainedAugmented()
+    ht.conv.testOnTrainedAugmentedAndWeather(trainingDataset())
     # ht.conv.testOnAll()
     # aug = ht.augment.Augmentor()
     # viewer = ht.viz.dayviewer.DayViewer()
