@@ -4,12 +4,24 @@ Much of this is taken from https://github.com/keras-team/keras/blob/master/keras
 
 from time import localtime, strftime
 from math import ceil
+import multiprocessing
+# import threading
 
 import numpy as np
 import cv2
 import scipy.ndimage as ndi
 
 import hottopic as ht
+
+def transform(args):
+    channel, final_affine_matrix, final_offset = args
+    return ndi.interpolation.affine_transform(
+        channel,
+        final_affine_matrix,
+        final_offset,
+        order=1,
+        mode='constant',
+        cval=0.)
 
 def apply_transform(x,
                     transform_matrix,
@@ -32,14 +44,12 @@ def apply_transform(x,
     x = np.rollaxis(x, channel_axis, 0)
     final_affine_matrix = transform_matrix[:2, :2]
     final_offset = transform_matrix[:2, 2]
-    channel_images = [ndi.interpolation.affine_transform(
-        x_channel,
-        final_affine_matrix,
-        final_offset,
-        order=1,
-        mode=fill_mode,
-        cval=cval) for x_channel in x]
-    x = np.stack(channel_images, axis=0)
+
+    inputs = [(x_channel, final_affine_matrix, final_offset) for x_channel in x]
+    p = multiprocessing.pool.ThreadPool(32)
+    transformed = p.map(transform, inputs)
+
+    x = np.stack(transformed, axis=0)
     x = np.rollaxis(x, 0, channel_axis + 1)
     return x
 
