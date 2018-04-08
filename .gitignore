@@ -17,3 +17,4 @@ processed/*
 !processed/.placeholder
 
 main_out.out
+out.profile
