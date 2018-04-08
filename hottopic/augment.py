@@ -23,6 +23,9 @@ def transform(args):
         mode='constant',
         cval=0.)
 
+from multiprocessing.pool import ThreadPool
+_pool = ThreadPool(8)
+
 def apply_transform(x,
                     transform_matrix,
                     fill_mode='constant',
@@ -47,17 +50,14 @@ def apply_transform(x,
 
     inputs = [(x_channel, final_affine_matrix, final_offset) for x_channel in x]
     transformed = None
-    tp = multiprocessing.pool.ThreadPool(8)
-    for i in range(5):
-        try:
-            transformed = tp.map(transform, inputs)
-        except RuntimeError:
-            # somethign failed,try again
-            print('reaugmenting')
-            continue
-        break
-    if transformed is None:
-        print('defaulting to serial')
+    # tp = multiprocessing.pool.ThreadPool(8)
+
+    try:
+        transformed = _pool.map(transform, inputs)
+        # pool.close()
+        # pool.join()
+    except RuntimeError:
+        # somethign failed,try again
         transformed = [transform(inp) for inp in inputs]
 
     x = np.stack(transformed, axis=0)
