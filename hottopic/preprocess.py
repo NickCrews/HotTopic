@@ -24,7 +24,7 @@ class PreProcessor(object):
 
     @staticmethod
     def _getInput(day, use_weather):
-        layer_data = PreProcessor.getLayerInputs(day)
+        layer_data, crop_bounds = PreProcessor.getLayerInputs(day)
 
         if use_weather:
             metrics = PreProcessor.getWeatherInputs(day)
@@ -33,17 +33,8 @@ class PreProcessor(object):
             layer_data = np.dstack((layer_data, tiled_metrics))
 
         np.nan_to_num(layer_data, copy=False)
-        # for i in range(spec.numLayers):
-        #     layer = stacked[:,:,i]
-        #     print(spec.layers[i],layer.dtype, layer.shape, layer.min(), layer.max(), layer.mean(), layer.std())
-        #     if layer.dtype == np.uint8:
-        #         cv2.imshow('perim', layer*255)
-        #     else:
-        #         cv2.imshow(spec.layers[i],layer)
-        #     cv2.waitKey(0)
-        # print(stacked.shape)
         shrunk = cv2.resize(layer_data, None, fx=PreProcessor.SCALE_FACTOR, fy=PreProcessor.SCALE_FACTOR)
-        return shrunk
+        return shrunk, crop_bounds
 
     @staticmethod
     def getOutput(days):
@@ -59,7 +50,8 @@ class PreProcessor(object):
         loy, hiy, lox, hix = AOI_bounds
         cropped = ep[loy:hiy, lox:hix]
         shrunk = cv2.resize(cropped, None, fx=PreProcessor.SCALE_FACTOR, fy=PreProcessor.SCALE_FACTOR)
-        return shrunk
+        explicit_one_channel = np.expand_dims(shrunk, axis=-1)
+        return explicit_one_channel
 
     @staticmethod
     def getWeatherInputs(day):
@@ -86,25 +78,28 @@ class PreProcessor(object):
                 cropped = cropped-np.nanmean(cropped)
             layers.append(cropped)
 
-        return np.dstack(layers)
+        return np.dstack(layers), AOI_bounds
 
     @staticmethod
     def getAOIBounds(ending_perim):
         loy,hiy,lox,hix = PreProcessor.getBB(ending_perim)
-        # expand by radius R
-        R = 16
+        # cv2.imshow("ending_perim", ending_perim)
+        # expand by radius R (in the final result)
+        R = 24
+        R = int(R/PreProcessor.SCALE_FACTOR)
         H,W = ending_perim.shape
         loy = max(0, loy-R)
         lox = max(0, lox-R)
-        hiy = min(H-1, hiy+R)
-        hix = min(W-1, hix+R)
+        hiy = min(H, hiy+R)
+        hix = min(W, hix+R)
         return loy,hiy,lox,hix
 
     @staticmethod
     def getBB(ending_perim):
         h,w = ending_perim.shape
-        col_contains_nonzero = ending_perim.any(axis=0)
-        row_contains_nonzero = ending_perim.any(axis=1)
+        noNans = np.nan_to_num(ending_perim, copy=True)
+        col_contains_nonzero = noNans.any(axis=0)
+        row_contains_nonzero = noNans.any(axis=1)
         loy = np.argmax(row_contains_nonzero)
         hiy = h-np.argmax(row_contains_nonzero[::-1])
         lox = np.argmax(col_contains_nonzero)
