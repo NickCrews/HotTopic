@@ -46,8 +46,19 @@ def apply_transform(x,
     final_offset = transform_matrix[:2, 2]
 
     inputs = [(x_channel, final_affine_matrix, final_offset) for x_channel in x]
-    p = multiprocessing.pool.ThreadPool(32)
-    transformed = p.map(transform, inputs)
+    transformed = None
+    tp = multiprocessing.pool.ThreadPool(8)
+    for i in range(5):
+        try:
+            transformed = tp.map(transform, inputs)
+        except RuntimeError:
+            # somethign failed,try again
+            print('reaugmenting')
+            continue
+        break
+    if transformed is None:
+        print('defaulting to serial')
+        transformed = [transform(inp) for inp in inputs]
 
     x = np.stack(transformed, axis=0)
     x = np.rollaxis(x, 0, channel_axis + 1)
