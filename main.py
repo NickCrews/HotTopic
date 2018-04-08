@@ -43,6 +43,12 @@ def trainingDataset():
         trainingDays.extend(ht.rawdata.getAllDays(bn))
     return trainingDays
 
+def testingDataset():
+    testingBurnNames = ['coldSprings', 'riceRidge']
+    days = []
+    for bn in testingBurnNames:
+        days.extend(ht.rawdata.getAllDays(bn))
+    return days
 
 def example():
     allDays = ht.rawdata.getAllDays()
@@ -123,14 +129,15 @@ def checkForAugmentingAndNorming():
         # cv2.waitKey(0)
 
 if __name__ == '__main__':
-    ht.conv.fitPreprocessorWithAugmentedAndWeather(trainingDataset())
+    # ht.conv.fitPreprocessorWithAugmentedAndWeather(trainingDataset())
     # fitPreprocessorWithAugmented()
     # checkForAugmentingAndNorming()
     # ht.conv.trainWithoutAugment()
-    # ht.conv.trainWithAugmentAndWeather(trainingDataset())
+    ht.conv.trainWithAugmentAndWeather(trainingDataset())
     # ht.conv.test()
     # ht.conv.trainWithAugment()
     # ht.conv.testOnTrainedAugmentedAndWeather(trainingDataset())
+    # ht.conv.testOnTrainedAugmentedAndWeather(testingDataset())
     # ht.conv.testOnAll()
     # aug = ht.augment.Augmentor()
     # viewer = ht.viz.dayviewer.DayViewer()
