@@ -24,17 +24,19 @@ class PreProcessor(object):
 
     @staticmethod
     def _getInput(day, use_weather):
-        layer_data, crop_bounds = PreProcessor.getLayerInputs(day)
+        layer_data= PreProcessor.getLayerInputs(day)
 
         if use_weather:
             metrics = PreProcessor.getWeatherInputs(day)
-            h,w = layer_data.shape[:2]
-            tiled_metrics = np.tile(metrics, [h,w,1])
-            layer_data = np.dstack((layer_data, tiled_metrics))
+            # h,w = layer_data.shape[:2]
+            # tiled_metrics = np.tile(metrics, [h,w,1])
+            # layer_data = np.dstack((layer_data, tiled_metrics))
+        else:
+            metrics = None
 
         np.nan_to_num(layer_data, copy=False)
         shrunk = cv2.resize(layer_data, None, fx=PreProcessor.SCALE_FACTOR, fy=PreProcessor.SCALE_FACTOR)
-        return shrunk, crop_bounds
+        return shrunk, metrics
 
     @staticmethod
     def getOutput(days):
@@ -46,12 +48,12 @@ class PreProcessor(object):
     @staticmethod
     def _getOutput(day):
         ep = day.layers['ending_perim']
-        AOI_bounds = PreProcessor.getAOIBounds(ep)
+        AOI_bounds = PreProcessor.getAOIBounds(day)
         loy, hiy, lox, hix = AOI_bounds
         cropped = ep[loy:hiy, lox:hix]
         shrunk = cv2.resize(cropped, None, fx=PreProcessor.SCALE_FACTOR, fy=PreProcessor.SCALE_FACTOR)
-        explicit_one_channel = np.expand_dims(shrunk, axis=-1)
-        return explicit_one_channel
+        # explicit_one_channel = np.expand_dims(shrunk, axis=-1)
+        return shrunk
 
     @staticmethod
     def getWeatherInputs(day):
@@ -67,7 +69,7 @@ class PreProcessor(object):
 
     @staticmethod
     def getLayerInputs(day):
-        AOI_bounds = PreProcessor.getAOIBounds(day.layers['ending_perim'])
+        AOI_bounds = PreProcessor.getAOIBounds(day)
         loy, hiy, lox, hix = AOI_bounds
 
         layers = []
@@ -78,10 +80,11 @@ class PreProcessor(object):
                 cropped = cropped-np.nanmean(cropped)
             layers.append(cropped)
 
-        return np.dstack(layers), AOI_bounds
+        return np.dstack(layers)
 
     @staticmethod
-    def getAOIBounds(ending_perim):
+    def getAOIBounds(day):
+        ending_perim = day.layers['ending_perim']
         loy,hiy,lox,hix = PreProcessor.getBB(ending_perim)
         # cv2.imshow("ending_perim", ending_perim)
         # expand by radius R (in the final result)
@@ -93,6 +96,18 @@ class PreProcessor(object):
         hiy = min(H, hiy+R)
         hix = min(W, hix+R)
         return loy,hiy,lox,hix
+
+    @staticmethod
+    def reconstruct_output(output, day):
+        '''Given an output from the model and the day it was predicted from,
+        scale the output back up so that it actually fits over the original day
+
+        re-enlarge the output and re-insert it in the actual day it was exptracted from'''
+        loy,hiy,lox,hix = PreProcessor.getAOIBounds(day)
+        bigger = cv2.resize(output, (hix-lox, hiy-loy))
+        canvas = np.zeros_like(day.layers['starting_perim'])
+        canvas[loy:hiy, lox:hix] = bigger
+        return canvas
 
     @staticmethod
     def getBB(ending_perim):

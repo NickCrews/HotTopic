@@ -13,8 +13,8 @@ import hottopic as ht
 SCALE_FACTOR = .25
 
 def smart_entropy_loss(yhat, y):
-    print(yhat)
-    print(y)
+    # print(yhat)
+    # print(y)
     dif = (y-yhat)
     false_pos = K.exp(dif)
     false_neg = K.exp(-dif)
@@ -24,13 +24,13 @@ def smart_entropy_loss(yhat, y):
     is_1_heavy = K.exp(bias)
 
     bce = K.binary_crossentropy(yhat, y)
-    print(bce)
+    # print(bce)
     weights = (is_0_heavy*false_neg + is_1_heavy*false_pos)/2
-    print(weights)
+    # print(weights)
     total_of_weights = K.sum(weights, keepdims=True)
-    print(total_of_weights)
+    # print(total_of_weights)
     result = K.mean( (weights*bce)/total_of_weights, axis=-1 )
-    print(result)
+    # print(result)
     return result
 
 def my_binary_crossentropy(y_true, y_pred):
@@ -189,12 +189,7 @@ def testOnTrainedAugmentedAndWeather(days):
         neg = total-pos
         print(pos, total, pos/total, pos/neg)
 
-        # cv2 uses (w,h) and numpy uses (h,w) WTF
-        loy,hiy,lox,hix = crop_bounds
-        blank = np.zeros_like(day.layers['starting_perim'])
-        bigger = cv2.resize(out, (hix-lox, hiy-loy))
-        blank[loy:hiy, lox:hix] = bigger
-        out_final = blank
+        out_final = pp.reconstruct_output(out, day)
 
         canvas = ht.viz.render.renderCanvas(day)
         viz = ht.viz.render.overlayPredictions(canvas, out_final)

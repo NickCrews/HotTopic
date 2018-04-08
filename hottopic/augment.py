@@ -10,6 +10,7 @@ import multiprocessing
 import numpy as np
 import cv2
 import scipy.ndimage as ndi
+import matplotlib.pyplot as plt
 
 import hottopic as ht
 
@@ -120,8 +121,7 @@ class Augmentor(object):
 
     def augment(self, day):
         names = list(day.layers.keys())
-        layers = [day.layers[name] for name in names]
-        img = np.dstack(layers)
+        img = np.dstack(day.layers[name] for name in names)
 
         # apply the transforms
         params = self.generate_parameters()
@@ -139,11 +139,6 @@ class Augmentor(object):
         new_img = self.transform_layers(padded, params)
         new_weather = self.transform_weather(day.weather, params)
 
-        # cv2.imshow('padded',padded[:,:,0])
-        # cv2.imshow('img',img[:,:,0])
-        # cv2.imshow('newimg',new_img[:,:,0])
-        # cv2.waitKey(0)
-
         # make a new Burn object
         burnName = day.burn.name + '_augmented_' + strftime("%d%b%H_%M", localtime())
         burn_layers = {name: new_img[:,:,names.index(name)] for name in ht.rawdata.Burn.LAYERS}
@@ -151,6 +146,12 @@ class Augmentor(object):
         #make a new day object
         starting_perim = new_img[:,:, names.index('starting_perim')]
         ending_perim = new_img[:,:, names.index('ending_perim')]
+        # the interpolation of the affine transform actually bessed up the binary-ness
+        starting_perim[starting_perim >= .5] = 1.
+        starting_perim[starting_perim < .5] = 0.
+        ending_perim[ending_perim >= .5] = 1.
+        ending_perim[ending_perim < .5] = 0.
+
         new_day = ht.rawdata.Day(new_burn, day.date, new_weather, starting_perim, ending_perim)
 
         # make the Burn object remember the Day object
@@ -211,7 +212,7 @@ class Augmentor(object):
             h, w = img.shape[:2]
             # make the transform happena round the center of the image, not the UL corner
             transform_matrix = transform_matrix_offset_center(transform_matrix, h, w)
-            img = apply_transform(img,transform_matrix, fill_mode='constant', cval=np.nan)
+            img = apply_transform(img,transform_matrix, fill_mode='constant', cval=0.0)
 
         if flip_hor:
             # LR is reversed

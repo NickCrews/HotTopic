@@ -72,3 +72,6 @@ class Normalizer(object):
 
     def __repr__(self):
         return 'Normalizer({})'.format(self.fits)
+
+def fromFile(fname):
+    return Normalizer.fromFile(fname)

@@ -74,13 +74,13 @@ def trainAndTestSets():
             train.append(ht.rawdata.getDay(b,d))
     return train, test
 
-def train():
-    m = ht.model.load('secondFit')
-    # m.save('firstFit')
-    train, test = trainAndTestSets()
-    s = ht.sample.makeSamples(train)
-    m.fitOnSamples(s, epochs=5)
-    m.save('thirdFit')
+# def train():
+#     m = ht.model.load('secondFit')
+#     # m.save('firstFit')
+#     train, test = trainAndTestSets()
+#     s = ht.sample.makeSamples(train)
+#     m.fitOnSamples(s, epochs=5)
+#     m.save('thirdFit')
 
 def trainOnOne():
     m = ht.model.FireModel()

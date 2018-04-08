@@ -114,7 +114,6 @@ class Day(object):
     def loadStartingPerim(burnName, date):
         fname =  'data' + os.sep + burnName + os.sep + 'perims' + os.sep + date+'.tif'
         perim = ht.util.openPerim(fname)
-        perim[perim!=0] = 255
         return perim
 
     @staticmethod

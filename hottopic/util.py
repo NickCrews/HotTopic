@@ -42,9 +42,10 @@ def openPerim(fname):
     img = cv2.imread(fname, 0)
     if img is None:
         raise ValueError("Could not open the file {} as an image".format(fname))
-    img = img.astype(np.uint8)
     if len(img.shape)>2:
         img = img[:,:,0]
+    img = img.astype(np.float32)
+    img[img!=0] = 1.0
     return img
 
 def validPixelIndices(layer):
@@ -111,6 +112,24 @@ def possibleNextDates(dateString):
     nextMonth = str(int(month)+1).zfill(2)
     guess2 = nextMonth+'01'
     return guess1, guess2
+
+def make_generator(days, normalizer, augmentor=None, use_weather=False):
+    pp = ht.preprocess.PreProcessor
+    def generator():
+        while True:
+            for day in days:
+                if augmentor:
+                    day = augmentor.augment(day)
+                inp = pp.getInput(day, use_weather)
+                out = pp.getOutput(day)
+                # for i in range(inp.shape[-1]):
+                #     print(i, inp[:,:,i].mean())
+                # assert np.isnan(inp).any() == False
+                # assert np.isnan(out).any() == False
+                normed = normalizer.normalize(inp)
+                # print('about to yield', np.expand_dims(normed, axis=0).shape, np.expand_dims(out, axis=0).shape)
+                yield np.expand_dims(normed, axis=0), np.expand_dims(out, axis=0)
+    return generator
 
 # =================================================================
 # weather metric utility functions
