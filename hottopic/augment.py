@@ -58,6 +58,7 @@ def apply_transform(x,
         # pool.join()
     except RuntimeError:
         # somethign failed,try again
+        print('falling back on serial...')
         transformed = [transform(inp) for inp in inputs]
 
     x = np.stack(transformed, axis=0)

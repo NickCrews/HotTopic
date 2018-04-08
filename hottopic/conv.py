@@ -41,6 +41,8 @@ def my_binary_crossentropy(y_true, y_pred):
     print(result)
     return result
 
+def smart_entropy_metric(y_true, y_pred):
+    return K.mean(smart_entropy_loss(y_true, y_pred))
 
 def make_model(sample_spec):
     kernel_size=(5,5)
@@ -53,7 +55,7 @@ def make_model(sample_spec):
     m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
     # m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='sigmoid', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
 
-    m.compile(optimizer='rmsprop', loss=smart_entropy_loss, metrics=['accuracy'])
+    m.compile(optimizer='rmsprop', loss=smart_entropy_loss, metrics=['accuracy', smart_entropy_metric])
     m.summary()
     return m
 
@@ -76,7 +78,7 @@ def make_model_with_weather(num_channels):
     m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='relu', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
     # m.add(Conv2D(1, kernel_size, strides=(1, 1), padding='same', data_format='channels_last', dilation_rate=2, activation='sigmoid', use_bias=True, kernel_initializer='glorot_uniform', bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, activity_regularizer=None, kernel_constraint=None, bias_constraint=None))
 
-    m.compile(optimizer='rmsprop', loss=smart_entropy_loss, metrics=['accuracy'])
+    m.compile(optimizer='rmsprop', loss=smart_entropy_loss, metrics=['accuracy', smart_entropy_metric])
     m.summary()
     return m
 
@@ -129,7 +131,7 @@ def trainWithAugment(days):
 
 def trainWithAugmentAndWeather(days):
     aug = ht.augment.Augmentor()
-    normer = ht.normalizer.Normalizer.fromFile('normerApril5.json')
+    normer = ht.normalizer.Normalizer.fromFile('normerApril7.json')
     gen = make_generator(days, normer, aug, use_weather=True)
     # for inp, out in gen():
     #     for c in range(inp.shape[-1]):
@@ -171,7 +173,7 @@ def testOnTrainedAugmentedAndWeather(days):
     normer = ht.normalizer.Normalizer.fromFile('normerApril5.json')
     # normed = pre.process(auged)
     # m = keras.models.load_model('models/convWithAugmentedBig.h5')
-    m = keras.models.load_model('models/convApril5.h5')
+    m = keras.models.load_model('models/convApril7.h5',custom_objects={'smart_entropy_loss': smart_entropy_loss})
 
     for day in days:
         day = augmentor.augment(day)
