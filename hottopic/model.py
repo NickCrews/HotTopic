@@ -50,7 +50,8 @@ class BaseModel(object):
             self.ourModel = ourModel
 
         def on_epoch_end(self, epoch, logs={}):
-            self.ourModel.save()
+            if epoch%5==0:
+                self.ourModel.save()
 
     # def fit(self, trainingDataset, validatateDataset=None, epochs=DEFAULT_EPOCHS,batch_size=DEFAULT_BATCHSIZE):
     #     assert self.kerasModel is not None, "You must set the kerasModel within a subclass"
@@ -80,6 +81,10 @@ class BaseModel(object):
         gen = ht.sample.generateTrainingData(samples, batchSize, shuffle)
         batchesPerDataset = int(math.ceil(len(samples)/batchSize))
         self.kerasModel.fit_generator(gen, steps_per_epoch=batchesPerDataset, epochs=epochs, callbacks=[self.saver])
+
+    def fit_generator(self, *args, **kwargs):
+        kwargs['callbacks'] = [self.saver]
+        self.kerasModel.fit_generator(*args, **kwargs)
 
     def predict(self, inputs):
         return self.kerasModel.predict(inputs)
@@ -167,7 +172,7 @@ class FireModel(BaseModel):
         concat = Concatenate(name='mergedBranches')([wb,ib.output])
         out = Dense(1, kernel_initializer = 'normal', activation = 'sigmoid',name='output')(concat)
         # print("concat and out info:", concat.shape, out.shape)
-        kerasModel = Model([wb, ib.input], out)
+        kerasModel = Model([ib.input, wb], out)
 
         # self.add(Concatenate([self.wb, self.ib]))
         sgd = SGD(lr = 0.1, momentum = 0.9, decay = 0, nesterov = False)

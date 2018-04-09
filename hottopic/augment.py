@@ -126,7 +126,7 @@ class Augmentor(object):
         # apply the transforms
         params = self.generate_parameters()
         theta, zx, zy, flip_hor, flip_ver = params
-        print('augmenting {} with'.format(day.burn.name+day.date), params)
+        # print('augmenting {} with'.format(day.burn.name+day.date), params)
 
         # if there is something in the corner of the image, it will be cut off with a rotation
         h,w = img.shape[:2]

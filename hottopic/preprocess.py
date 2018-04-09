@@ -52,6 +52,8 @@ class PreProcessor(object):
         loy, hiy, lox, hix = AOI_bounds
         cropped = ep[loy:hiy, lox:hix]
         shrunk = cv2.resize(cropped, None, fx=PreProcessor.SCALE_FACTOR, fy=PreProcessor.SCALE_FACTOR)
+        shrunk[shrunk <  .5] = 0
+        shrunk[shrunk >= .5] = 1.
         # explicit_one_channel = np.expand_dims(shrunk, axis=-1)
         return shrunk
 
@@ -65,7 +67,7 @@ class PreProcessor(object):
         maxTemp2s = ht.util.maximumTemperature2(weather)
         windSpeeds = ht.util.windMetrics(weather)
 
-        return [totPrecips, avgHums, maxTemp1s, maxTemp2s] + windSpeeds
+        return np.array([totPrecips, avgHums, maxTemp1s, maxTemp2s] + windSpeeds)
 
     @staticmethod
     def getLayerInputs(day):

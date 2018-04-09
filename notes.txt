@@ -21,3 +21,16 @@ I think this is because only ~5% of pixels actually did burn, so it just always 
 
 4/7:
 Trying to fix this imbalance issue.
+
+made a custom loss metric that heavily penalizes guessing 0 on a true-1 pixel, when the majority of pixels are 0. As could maybe be predicted if you thought about it (which I didnt lol) now it just thinks EVERYTHHING burnt because its terrified having a false negative.
+
+4/8:
+tried to go back to where we were in december, using patches as inputs, so that we can balance the pos and neg samples
+merged some of the newer stuff, such as on-the-fly augmenting of days, and then normalizing only just before training.
+
+normalizer saved as back2patches.json.
+trained for 64 epochs, 16 batches per epoch, each batch 16 samples large. saved model as back2patches2 (back2patches was a test run for 4 epochs to make sure there wouldnt be crashes)
+
+It is back to guessing around .5 for every pixel we feed it.
+
+about to try to reset to branch from december. Have been terrified to do that so far because I wont be able to remember whats going on

@@ -6,49 +6,44 @@ import numpy as np
 
 import hottopic as ht
 
+# class Normalizer2()
+
 class Normalizer(object):
 
     def __init__(self, fits=None):
         self.fits = fits
-        self.num_channels = None if self.fits is None else len(self.fits)+1
 
     def fit(self, inputs):
         '''Find the mean and std dev of each channel for this group of inputs
         ignore the first channel, the starting_perim'''
-        self.num_channels = inputs[0].shape[-1]
+        if not isinstance(inputs, list):
+            inputs = [inputs]
         self.fits = []
-        for i in range(1, self.num_channels):
-            print("normalizing channel", i)
-            channel = np.concatenate([inp[:,:,i].ravel() for inp in inputs])
-            # s = sum(np.nansum(c) for c in channel)
-            # N = sum(c.size for c in channel)
-            # mean =  s/N
-            # devs_squared = [(c-mean)**2 for c in channel]
-            # sum_devs_squared = sum(np.nansum(d) for d in devs_squared)
-            # std = np.sqrt(sum_devs_squared/N)
-            mean, std = np.nanmean(channel), np.nanstd(channel)
-            # print(mean, std)
-            self.fits.append((mean, std))
+        for branch in inputs:
+            num_channels = branch[0].shape[-1]
+            channel_fits = []
+            for i in range(num_channels):
+                channel = np.concatenate([inp[...,i].ravel() for inp in branch])
+                mean, std = np.nanmean(channel), np.nanstd(channel)
+                channel_fits.append((float(mean), float(std)))
+            self.fits.append(channel_fits)
 
     def normalize(self, inputs):
         if self.fits is None:
             raise ValueError("Trying to normalize with an unfitted Normalizer")
-        if isinstance(inputs, np.ndarray):
-            return self._normalize(inputs)
-        else:
-            return [self._normalize(inp) for inp in inputs]
-
-    def _normalize(self, inp):
-        if inp.shape[-1] != self.num_channels:
-            raise ValueError("Fitted with inputs that have a different number of channels")
-
-        inp = inp.copy()
-        for i, (mean, std) in enumerate(self.fits, start=1):
-            # ignore the first channel, starting_perim
-            channel = inp[:,:,i]
-            channel = (channel-mean) / std
-            inp[:,:,i] = channel
-        return inp
+        assert isinstance(inputs, list)
+        if len(inputs) != len(self.fits):
+            raise ValueError(("Fitted on inputs with {} branches"
+            " but got input with {} branches").format(len(self.fits), len(inputs)))
+        for branch, fits in zip(inputs, self.fits):
+            if branch.shape[-1] != len(fits):
+                raise ValueError(("Fitted on a branch with {} channels"
+                " but got branch with {} channels").format(len(fits), branch.shape[-1]))
+            for i, (mean, std) in enumerate(fits):
+                channel = branch[...,i]
+                channel = (channel-mean) / std
+                branch[...,i] = channel
+        return inputs
 
     def save(self, fname):
         if self.fits is None:
